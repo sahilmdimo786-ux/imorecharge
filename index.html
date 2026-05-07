@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
+  <title>IMO Recharge • Premium Purple Diamond Store</title>
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', 'Inter', system-ui, sans-serif;
+      background: linear-gradient(145deg, #f0f4fe 0%, #e8edf8 100%);
+      min-height: 100vh;
+      padding: 1.5rem;
+      position: relative;
+    }
+    .glass-card {
+      background: rgba(255, 255, 255, 0.78);
+      backdrop-filter: blur(16px);
+      border-radius: 2.2rem;
+      border: 1px solid rgba(255,255,255,0.9);
+      box-shadow: 0 20px 35px -12px rgba(0,0,0,0.08);
+      max-width: 600px;
+      margin: 0 auto 1.5rem;
+      padding: 1.8rem;
+    }
+    .hero h1 {
+      font-size: 2rem;
+      background: linear-gradient(130deg, #4a1d6d, #7b2d8e, #9b4d96);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+    .input-with-help {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+    }
+    .input-with-help input {
+      flex: 1;
+      margin: 0;
+    }
+    .help-btn {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: linear-gradient(145deg, #eef2ff, #e2e8f0);
+      border: 1px solid #cbd5e6;
+      font-size: 1.3rem;
+      font-weight: bold;
+      color: #0a58ca;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .help-btn:hover {
+      background: #0d6efd;
+      color: white;
+      transform: scale(1.02);
+    }
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.7);
+      backdrop-filter: blur(8px);
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.3s ease;
+    }
+    .modal-overlay.active {
+      opacity: 1;
+      visibility: visible;
+    }
+    .modal-content {
+      background: white;
+      border-radius: 2rem;
+      max-width: 420px;
+      width: 90%;
+      padding: 1.5rem;
+      text-align: center;
+      box-shadow: 0 30px 50px rgba(0,0,0,0.3);
+      animation: modalPop 0.3s ease;
+    }
+    @keyframes modalPop {
+      from { transform: scale(0.9); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+    .video-container {
+      position: relative;
+      width: 100%;
+      padding-bottom: 56.25%;
+      margin: 1rem 0;
+      background: #000;
+      border-radius: 1rem;
+      overflow: hidden;
+    }
+    .video-container iframe {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+    .close-modal-btn {
+      background: linear-gradient(145deg, #7b2d8e, #4a1d6d);
+      color: white;
+      border: none;
+      padding: 0.7rem 1.5rem;
+      border-radius: 2rem;
+      cursor: pointer;
+      margin-top: 0.5rem;
+      font-weight: bold;
+    }
+    .diamond-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin: 1rem 0;
+    }
+    .diamond-option {
+      background: white;
+      border-radius: 1.2rem;
+      padding: 0.8rem 0.3rem;
+      text-align: center;
+      cursor: pointer;
+      border: 1px solid #cbd5e6;
+      transition: all 0.2s;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    }
+    .diamond-option:hover {
+      transform: translateY(-3px);
+      border-color: #9b4d96;
+      background: linear-gradient(145deg, #ffffff, #faf0ff);
+      box-shadow: 0 8px 18px -6px rgba(123, 45, 142, 0.2);
+    }
+    .diamond-option.selected {
+      background: linear-gradient(145deg, #f3e8ff, #e9d5ff);
+      border-color: #7b2d8e;
+      box-shadow: 0 4px 12px rgba(123, 45, 142, 0.2);
+    }
+    .diamond-icon {
+      display: inline-block;
+      background: radial-gradient(circle at 30% 35%, #c77dff, #7b2d8e, #4a1d6d, #2a0a3e, #1a0a2e);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      text-shadow: 0 0 8px rgba(123, 45, 142, 0.6), 0 0 12px rgba(0, 150, 255, 0.4);
+      font-size: 1.3rem;
+      filter: drop-shadow(0 2px 3px rgba(0,0,0,0.2));
+      animation: diamondShine 3s infinite alternate;
+    }
+    @keyframes diamondShine {
+      0% { filter: drop-shadow(0 2px 3px rgba(0,0,0,0.2)); text-shadow: 0 0 5px rgba(123,45,142,0.4); }
+      100% { filter: drop-shadow(0 0 6px rgba(0,150,255,0.5)); text-shadow: 0 0 15px rgba(0,150,255,0.6), 0 0 8px rgba(123,45,142,0.6); }
+    }
+    .diamond-qty {
+      font-size: 1.2rem;
+      font-weight: 800;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      color: #1e293b;
+    }
+    .diamond-price {
+      font-size: 0.7rem;
+      font-weight: 600;
+      color: #2c3e66;
+      margin-top: 4px;
+    }
+    input, select, button {
+      width: 100%;
+      padding: 0.9rem;
+      border-radius: 1.6rem;
+      border: 1px solid #cbd5e6;
+      margin: 0.5rem 0;
+      font-size: 1rem;
+    }
+    .btn-primary {
+      background: linear-gradient(145deg, #7b2d8e, #4a1d6d);
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+      border: none;
+    }
+    .btn-primary:hover {
+      background: linear-gradient(145deg, #9b4d96, #6a2d8e);
+      transform: translateY(-1px);
+    }
+    .btn-primary:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+    .btn-secondary {
+      background: #eef2ff;
+      color: #334155;
+      border: 1px solid #cbd5e6;
+    }
+    .hidden { display: none; }
+    .toast {
+      position: fixed;
+      bottom: 80px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #1f2937;
+      color: white;
+      padding: 0.8rem 1.5rem;
+      border-radius: 2rem;
+      z-index: 1000;
+      font-size: 0.9rem;
+      animation: fadeOut 2s ease forwards;
+    }
+    @keyframes fadeOut { 0% { opacity: 1; } 70% { opacity: 1; } 100% { opacity: 0; visibility: hidden; } }
+    .admin-badge {
+      position: fixed;
+      top: 1rem;
+      right: 1rem;
+      background: #7b2d8e;
+      color: white;
+      padding: 0.4rem 1rem;
+      border-radius: 2rem;
+      cursor: pointer;
+      font-size: 0.8rem;
+      z-index: 200;
+    }
+    .admin-badge.logged-in {
+      background: #10b981;
+    }
+    table { width: 100%; border-collapse: collapse; font-size: 0.75rem; }
+    th, td { padding: 0.5rem; border-bottom: 1px solid #ddd; text-align: left; }
+    .status-paid { color: green; font-weight: bold; }
+    .status-pending { color: orange; }
+    .mark-paid-btn { background: #25D366; color: white; border: none; padding: 0.2rem 0.6rem; border-radius: 1rem; cursor: pointer; }
+    .flex-row { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
+    .price-chip { background: #eef2ff; border-radius: 2rem; padding: 0.7rem; margin: 0.5rem 0; display: flex; justify-content: space-between; font-weight: bold; }
+    .ticker-bar { background: #eef2ffcc; border-radius: 2rem; padding: 0.5rem; margin: 1rem 0; overflow: hidden; white-space: nowrap; }
+    .ticker-scroll { display: inline-block; animation: slideTicker 22s linear infinite; }
+    @keyframes slideTicker { 0% { transform: translateX(0%); } 100% { transform: translateX(-50%); } }
+    .whatsapp-float {
+      position: fixed; bottom: 1.5rem; right: 1.5rem; background: #25D366; width: 56px; height: 56px;
+      border-radius: 30px; display: flex; align-items: center; justify-content: center; color: white;
+      font-size: 1.8rem; text-decoration: none; z-index: 99; box-shadow: 0 10px 20px rgba(0,0,0,0.15);
+    }
+    .login-form {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+    .login-form input {
+      margin: 0;
+    }
+    .error-msg {
+      color: #dc2626;
+      font-size: 0.8rem;
+      margin-top: 0.5rem;
+    }
+    .countdown-timer {
+      text-align: center;
+      margin-top: 1rem;
+      padding: 0.5rem;
+      background: #f0f4ff;
+      border-radius: 2rem;
+      font-size: 0.8rem;
+      color: #7b2d8e;
+    }
+    @media (max-width: 500px) { .diamond-grid { grid-template-columns: repeat(3, 1fr); } .glass-card { padding: 1.2rem; } }
+  </style>
+</head>
+<body>
+
+<div class="admin-badge" id="adminToggleBtn">🔐 Admin Login</div>
+
+<!-- PUBLIC RECHARGE PAGE -->
+<div id="publicPage">
+  <div class="glass-card">
+    <div class="hero"><h1><span class="diamond-icon">💎</span> IMO Recharge</h1><p>Fast & Secure Manual Diamond Recharge</p></div>
+    <div class="input-field">
+      <label>🆔 IMO Profile ID</label>
+      <div class="input-with-help">
+        <input type="text" id="pubImoId" placeholder="Enter your IMO Profile ID" autocomplete="off">
+        <button class="help-btn" id="helpTutorialBtn">?</button>
+      </div>
+      <small style="color:#4b5563;">Click ? to watch how to find your IMO ID</small>
+    </div>
+    <label>💎 Select Diamond Credit Pack</label>
+    <div class="diamond-grid" id="pubDiamondGrid"></div>
+    <div class="price-chip"><span>💰 Total Amount</span><span id="pubAmountPreview">₹0</span></div>
+    <button class="btn-primary" id="pubRechargeBtn">🚀 Recharge Now</button>
+    <div class="ticker-bar"><div class="ticker-scroll" id="liveTickerText">✨ Loading offers...</div></div>
+    <div class="flex-row" style="justify-content:space-between; margin:0.5rem 0;">
+      <span class="badge" style="background:#eef2ff; padding:0.3rem 0.8rem; border-radius:2rem;">🔒 Secure Payment</span>
+      <span class="badge" style="background:#eef2ff; padding:0.3rem 0.8rem; border-radius:2rem;">⚡ Fast Delivery</span>
+      <span class="badge" style="background:#eef2ff; padding:0.3rem 0.8rem; border-radius:2rem;">🕒 24/7 Support</span>
+    </div>
+    <div class="flex-row" style="justify-content:space-between; background:#f1f5f9; border-radius:1.5rem; padding:0.7rem; margin-top:0.5rem;">
+      <span>❓ Need help?</span>
+      <button id="pubHelpBtn" style="width:auto; background:#25D366; color:white; border:none; padding:0.3rem 1rem;">💬 WhatsApp</button>
+    </div>
+    <footer style="font-size:0.6rem; text-align:center; margin-top:1rem;">⚠️ Manual recharge service. Not affiliated with IMO.</footer>
+  </div>
+</div>
+
+<!-- ADMIN PANEL -->
+<div id="adminPage" style="display:none;">
+  <div class="glass-card">
+    <h2>🔧 Admin Dashboard</h2>
+    <div class="flex-row" style="justify-content:space-between; margin:1rem 0;">
+      <button id="adminLogoutBtn" style="background:#dc2626; width:auto; padding:0.4rem 1rem;">🚪 Logout</button>
+      <button id="toggleMaintenanceBtn" class="maintenance-toggle" style="width:auto;">🛠️ Maintenance: OFF</button>
+    </div>
+    
+    <div style="background:#eef2ff; padding:1rem; border-radius:1.5rem; margin:1rem 0;">
+      <label>💰 Diamond Credit Packs (Qty → Price)</label>
+      <div id="creditListAdmin" style="display:grid; grid-template-columns:repeat(2,1fr); gap:0.5rem; margin:0.5rem 0;"></div>
+      <button id="addCreditPackBtn" style="background:#7b2d8e; color:white; width:auto;">+ Add New Pack</button>
+    </div>
+
+    <div style="background:#eef2ff; padding:1rem; border-radius:1.5rem; margin:1rem 0;">
+      <label>📢 Auto-Scrolling Ticker (separate with | )</label>
+      <input type="text" id="adminTickerMsg" placeholder="e.g., Special Offer! | Limited Time">
+      <button id="updateTickerBtn" class="btn-primary">Update Ticker</button>
+    </div>
+
+    <h3>📋 Orders / Payment Requests</h3>
+    <div style="overflow-x:auto;"><table id="ordersTable"><thead><tr><th>Order ID</th><th>IMO ID</th><th>Diamonds</th><th>Amount</th><th>Status</th><th>Action</th></tr></thead><tbody id="ordersTableBody"></tbody></table></div>
+    <p style="font-size:0.7rem; margin-top:0.5rem;">✅ Mark as "Paid" → Order completed.</p>
+  </div>
+</div>
+
+<!-- TUTORIAL MODAL -->
+<div id="tutorialModal" class="modal-overlay">
+  <div class="modal-content">
+    <h3>📱 How to find your IMO Profile ID?</h3>
+    <p>Watch this short tutorial 👇</p>
+    <div class="video-container">
+      <iframe 
+        src="https://www.youtube.com/embed/0b7LXsb76Kg" 
+        title="How to find IMO Profile ID Tutorial"
+        frameborder="0"
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+        referrerpolicy="strict-origin-when-cross-origin"
+        allowfullscreen>
+      </iframe>
+    </div>
+    <p style="font-size:0.75rem; color:#6c757d;">Step 1: Open IMO app → Profile → Tap on profile picture<br>Step 2: Your IMO ID is shown below your name (Copy it)</p>
+    <button class="close-modal-btn" onclick="closeTutorialModal()">Got it! ✨</button>
+  </div>
+</div>
+
+<!-- LOGIN MODAL -->
+<div id="loginModal" class="modal-overlay">
+  <div class="modal-content">
+    <h3>🔐 Admin Login</h3>
+    <p>Enter your credentials to access admin panel</p>
+    <div class="login-form">
+      <input type="email" id="loginEmail" placeholder="Email address" autocomplete="email">
+      <input type="password" id="loginPassword" placeholder="Password" autocomplete="current-password">
+      <button id="loginSubmitBtn" class="btn-primary">Login</button>
+      <div id="loginError" class="error-msg"></div>
+    </div>
+    <button class="close-modal-btn" style="background:#6c757d; margin-top:0.5rem;" onclick="closeLoginModal()">Cancel</button>
+  </div>
+</div>
+
+<a href="#" id="floatWhatsApp" class="whatsapp-float" target="_blank">💬</a>
+
+<script>
+  // ========== FIREBASE CONFIGURATION ==========
+  const firebaseConfig = {
+    apiKey: "AIzaSyBDWvXXaHURG6YOanj_WGcE6bdw29RwFwM",
+    authDomain: "imorecharge-17fd1.firebaseapp.com",
+    projectId: "imorecharge-17fd1",
+    storageBucket: "imorecharge-17fd1.firebasestorage.app",
+    messagingSenderId: "957946439435",
+    appId: "1:957946439435:web:8c6d5987b5d300561b240e",
+    measurementId: "G-XMZ9T2VYCF"
+  };
+
+  firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+
+  // ========== BUSINESS CONFIGURATION ==========
+  const BUSINESS_UPI = "6203240682@okbizaxis";
+  const WHATSAPP_NUMBER = "919472898572";
+
+  // ========== APP STATE ==========
+  let creditPacks = [
+    { qty: 10, price: 30 },
+    { qty: 50, price: 90 },
+    { qty: 100, price: 175 },
+    { qty: 200, price: 350 },
+    { qty: 500, price: 870 },
+    { qty: 1000, price: 1740 },
+    { qty: 2000, price: 3580 },
+    { qty: 5000, price: 8700 }
+  ];
+  
+  let orders = [];
+  let settings = {
+    maintenanceMode: false,
+    customTickerMessages: ["🎉 New: 5000 diamonds @ ₹8700", "⚡ Fast manual recharge", "💎 Best IMO rates"]
+  };
+  
+  let currentUser = null;
+  let currentSelectedQty = 100;
+  let currentSelectedPrice = 175;
+  let pendingOrder = null; // Store order for auto-redirect after returning from UPI
+  
+  function saveOrders() { localStorage.setItem('imo_orders', JSON.stringify(orders)); }
+  function loadOrders() { const data = localStorage.getItem('imo_orders'); if(data) orders = JSON.parse(data); else orders = []; }
+  function saveSettings() { localStorage.setItem('imo_settings', JSON.stringify(settings)); }
+  function loadSettings() { const data = localStorage.getItem('imo_settings'); if(data) settings = {...settings, ...JSON.parse(data)}; else saveSettings(); }
+  function saveCreditPacks() { localStorage.setItem('imo_creditpacks', JSON.stringify(creditPacks)); }
+  function loadCreditPacks() { const data = localStorage.getItem('imo_creditpacks'); if(data) creditPacks = JSON.parse(data); else saveCreditPacks(); }
+  
+  loadOrders(); loadSettings(); loadCreditPacks();
+  
+  function showToast(msg, duration=2500) { let t=document.querySelector('.toast'); if(t) t.remove(); const div=document.createElement('div'); div.className='toast'; div.innerText=msg; document.body.appendChild(div); setTimeout(()=>div.remove(),duration); }
+  
+  function updatePublicSelection(qty, price) {
+    currentSelectedQty = qty;
+    currentSelectedPrice = price;
+    document.getElementById('pubAmountPreview').innerText = `₹${price}`;
+    document.querySelectorAll('#pubDiamondGrid .diamond-option').forEach(el => {
+      const elQty = parseInt(el.getAttribute('data-qty'));
+      if(elQty === qty) el.classList.add('selected');
+      else el.classList.remove('selected');
+    });
+  }
+  
+  function buildPublicGrid() {
+    const grid = document.getElementById('pubDiamondGrid');
+    if(!grid) return;
+    grid.innerHTML = '';
+    creditPacks.forEach(pack => {
+      const div = document.createElement('div');
+      div.className = 'diamond-option';
+      if(currentSelectedQty === pack.qty) div.classList.add('selected');
+      div.setAttribute('data-qty', pack.qty);
+      div.innerHTML = `<div class="diamond-qty"><span class="diamond-icon">💎</span> ${pack.qty}</div><div class="diamond-price">₹${pack.price}</div>`;
+      div.onclick = () => { updatePublicSelection(pack.qty, pack.price); };
+      grid.appendChild(div);
+    });
+    if(creditPacks.length && !creditPacks.find(p=>p.qty===currentSelectedQty)) updatePublicSelection(creditPacks[0].qty, creditPacks[0].price);
+  }
+  
+  function renderAdminCreditList() {
+    const container = document.getElementById('creditListAdmin');
+    if(!container) return;
+    container.innerHTML = '';
+    creditPacks.forEach((pack, idx) => {
+      const div = document.createElement('div');
+      div.style.display = 'flex'; div.style.gap = '0.5rem'; div.style.alignItems = 'center'; div.style.background = 'white'; div.style.padding = '0.3rem'; div.style.borderRadius = '1rem';
+      div.innerHTML = `
+        <input type="number" value="${pack.qty}" placeholder="Qty" style="width:80px; margin:0;" id="editQty_${idx}">
+        <input type="number" value="${pack.price}" placeholder="Price" style="width:100px; margin:0;" id="editPrice_${idx}">
+        <button class="save-pack-btn" data-idx="${idx}" style="width:auto; background:#10b981; padding:0.2rem 0.5rem;">💾</button>
+        <button class="del-pack-btn" data-idx="${idx}" style="width:auto; background:#dc2626; padding:0.2rem 0.5rem;">🗑️</button>
+      `;
+      container.appendChild(div);
+    });
+    document.querySelectorAll('.save-pack-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const idx = parseInt(btn.getAttribute('data-idx'));
+        const newQty = parseInt(document.getElementById(`editQty_${idx}`).value);
+        const newPrice = parseFloat(document.getElementById(`editPrice_${idx}`).value);
+        if(!isNaN(newQty) && newQty>0 && !isNaN(newPrice) && newPrice>0) {
+          creditPacks[idx] = { qty: newQty, price: newPrice };
+          creditPacks.sort((a,b)=>a.qty - b.qty);
+          saveCreditPacks();
+          buildPublicGrid();
+          renderAdminCreditList();
+          renderAdminOrders();
+          showToast("Credit pack updated!");
+        } else showToast("Invalid values");
+      });
+    });
+    document.querySelectorAll('.del-pack-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const idx = parseInt(btn.getAttribute('data-idx'));
+        if(creditPacks.length > 1) {
+          creditPacks.splice(idx,1);
+          saveCreditPacks();
+          buildPublicGrid();
+          renderAdminCreditList();
+          showToast("Pack deleted");
+        } else showToast("Cannot delete last pack");
+      });
+    });
+  }
+  
+  document.getElementById('addCreditPackBtn')?.addEventListener('click',()=>{
+    const maxQty = Math.max(...creditPacks.map(p=>p.qty)) + 100;
+    creditPacks.push({ qty: maxQty, price: Math.round(maxQty * (creditPacks[0]?.price/creditPacks[0]?.qty)) });
+    creditPacks.sort((a,b)=>a.qty-b.qty);
+    saveCreditPacks();
+    buildPublicGrid();
+    renderAdminCreditList();
+    showToast("New pack added");
+  });
+  
+  function genOrderId() { return 'IMO-' + Date.now() + '-' + Math.floor(Math.random()*10000); }
+  function createOrder(imoId, qty, amount) { const newOrder={ id:genOrderId(), imoId, diamonds:qty, amount, status:'pending', createdAt:Date.now() }; orders.unshift(newOrder); saveOrders(); renderAdminOrders(); return newOrder; }
+  
+  function renderAdminOrders() {
+    const tbody = document.getElementById('ordersTableBody');
+    if(!tbody) return;
+    tbody.innerHTML = '';
+    orders.forEach(order => {
+      const row = tbody.insertRow();
+      row.insertCell(0).innerText = order.id;
+      row.insertCell(1).innerText = order.imoId;
+      row.insertCell(2).innerHTML = `<span class="diamond-icon">💎</span> ${order.diamonds}`;
+      row.insertCell(3).innerText = `₹${order.amount}`;
+      row.insertCell(4).innerHTML = order.status === 'paid' ? '<span class="status-paid">✓ Paid</span>' : '<span class="status-pending">⏳ Pending</span>';
+      const actionCell = row.insertCell(5);
+      if(order.status !== 'paid') {
+        const btn = document.createElement('button'); btn.innerText = '✅ Mark Paid'; btn.className = 'mark-paid-btn';
+        btn.onclick = () => { order.status='paid'; saveOrders(); renderAdminOrders(); showToast(`Order ${order.id} marked paid`); };
+        actionCell.appendChild(btn);
+      } else actionCell.innerText = 'Completed';
+    });
+  }
+  
+  let tickerInterval;
+  let tickerList = [...settings.customTickerMessages];
+  function updateTickerDisplay() {
+    const tickerDiv = document.getElementById('liveTickerText');
+    if(!tickerDiv) return;
+    if(tickerList.length===0) tickerList=["✨ IMO Recharge Available"];
+    let idx=0;
+    if(tickerInterval) clearInterval(tickerInterval);
+    function rotate() { const msg=tickerList[idx%tickerList.length]; tickerDiv.innerText = msg + "   ⚡   " + msg; idx++; }
+    rotate();
+    tickerInterval = setInterval(rotate, 5000);
+  }
+  function setCustomTicker(str) { let parts=str.split('|').map(s=>s.trim()).filter(s=>s); if(parts.length) tickerList=parts; else tickerList=["🔥 New Diamond Packs!"]; settings.customTickerMessages=tickerList; saveSettings(); updateTickerDisplay(); }
+  
+  function openTutorialModal() { document.getElementById('tutorialModal').classList.add('active'); }
+  window.closeTutorialModal = function() { document.getElementById('tutorialModal').classList.remove('active'); };
+  function openLoginModal() { document.getElementById('loginModal').classList.add('active'); document.getElementById('loginError').innerText = ''; document.getElementById('loginEmail').value = ''; document.getElementById('loginPassword').value = ''; }
+  function closeLoginModal() { document.getElementById('loginModal').classList.remove('active'); }
+  
+  // Function to redirect to WhatsApp with order details
+  function redirectToWhatsApp(order) {
+    const whatsappMessage = `Hello%2C%20I%20have%20completed%20the%20payment%20for%20IMO%20recharge.%0A%0A📌%20*Order%20Details%3A*%0A🆔%20Order%20ID%3A%20${order.id}%0A👤%20IMO%20ID%3A%20${encodeURIComponent(order.imoId)}%0A💎%20Diamonds%3A%20${order.diamonds}%0A💰%20Amount%3A%20₹${order.amount}%0A%0A✅%20Payment%20done%20via%20UPI%20(${BUSINESS_UPI})%0A📱%20Please%20verify%20and%20recharge%20manually.%0A%0AThank%20you!`;
+    const waLink = `https://wa.me/${WHATSAPP_NUMBER}?text=${whatsappMessage}`;
+    window.open(waLink, '_blank');
+  }
+  
+  // Check if user returned from UPI app (page visibility change)
+  let upiRedirectTriggered = false;
+  document.addEventListener('visibilitychange', function() {
+    if (!document.hidden && pendingOrder && !upiRedirectTriggered) {
+      // User came back to the page after UPI app
+      upiRedirectTriggered = true;
+      showToast("✅ Payment completed! Redirecting to WhatsApp...");
+      setTimeout(() => {
+        redirectToWhatsApp(pendingOrder);
+        pendingOrder = null;
+      }, 500);
+    }
+  });
+  
+  auth.onAuthStateChanged((user) => {
+    currentUser = user;
+    const adminBtn = document.getElementById('adminToggleBtn');
+    if(user) {
+      adminBtn.innerText = `👤 Admin`;
+      adminBtn.classList.add('logged-in');
+      document.getElementById('adminPage').style.display = 'block';
+      document.getElementById('publicPage').style.display = 'none';
+      renderAdminCreditList();
+      renderAdminOrders();
+      document.getElementById('adminTickerMsg').value = tickerList.join(' | ');
+      document.getElementById('toggleMaintenanceBtn').innerText = settings.maintenanceMode ? "🛠️ Maintenance: ON" : "🛠️ Maintenance: OFF";
+      closeLoginModal();
+    } else {
+      adminBtn.innerText = `🔐 Admin Login`;
+      adminBtn.classList.remove('logged-in');
+      document.getElementById('adminPage').style.display = 'none';
+      document.getElementById('publicPage').style.display = 'block';
+    }
+  });
+  
+  document.getElementById('loginSubmitBtn')?.addEventListener('click', async () => {
+    const email = document.getElementById('loginEmail').value.trim();
+    const password = document.getElementById('loginPassword').value;
+    const errorDiv = document.getElementById('loginError');
+    if(!email || !password) {
+      errorDiv.innerText = 'Please enter email and password';
+      return;
+    }
+    try {
+      await auth.signInWithEmailAndPassword(email, password);
+    } catch(error) {
+      if(error.code === 'auth/user-not-found') errorDiv.innerText = 'User not found. Create admin in Firebase Console';
+      else if(error.code === 'auth/wrong-password') errorDiv.innerText = 'Wrong password';
+      else if(error.code === 'auth/invalid-email') errorDiv.innerText = 'Invalid email format';
+      else errorDiv.innerText = 'Login failed: ' + error.message;
+    }
+  });
+  
+  document.getElementById('adminLogoutBtn')?.addEventListener('click', async () => { await auth.signOut(); showToast("Logged out successfully"); });
+  document.getElementById('adminToggleBtn').addEventListener('click', () => { if(currentUser) { document.getElementById('adminPage').style.display = 'block'; document.getElementById('publicPage').style.display = 'none'; } else { openLoginModal(); } });
+  document.getElementById('updateTickerBtn')?.addEventListener('click',()=>{ const val=document.getElementById('adminTickerMsg').value; setCustomTicker(val); showToast("Ticker updated"); });
+  document.getElementById('toggleMaintenanceBtn')?.addEventListener('click',()=>{ settings.maintenanceMode=!settings.maintenanceMode; saveSettings(); const btn=document.getElementById('toggleMaintenanceBtn'); btn.innerText = settings.maintenanceMode ? "🛠️ Maintenance: ON" : "🛠️ Maintenance: OFF"; showToast(settings.maintenanceMode?"Maintenance ON":"Maintenance OFF"); if(pubRechargeBtn) pubRechargeBtn.disabled=settings.maintenanceMode; });
+  
+  const pubRechargeBtn = document.getElementById('pubRechargeBtn');
+  async function handleRecharge() {
+    if(settings.maintenanceMode) { showToast("🔧 Maintenance mode active. Recharge disabled."); return; }
+    const imoId = document.getElementById('pubImoId').value.trim();
+    if(!imoId || imoId.length<3) { showToast("❌ Valid IMO ID required"); return; }
+    if(!currentSelectedQty) { showToast("Select diamond pack"); return; }
+    const amount = currentSelectedPrice;
+    pubRechargeBtn.disabled = true; pubRechargeBtn.innerText = "⏳ Processing...";
+    
+    setTimeout(() => {
+      const order = createOrder(imoId, currentSelectedQty, amount);
+      pendingOrder = order; // Store for auto-redirect after returning from UPI
+      upiRedirectTriggered = false;
+      pubRechargeBtn.disabled = false; pubRechargeBtn.innerText = "🚀 Recharge Now";
+      
+      // Show payment screen with UPI and auto-redirect info
+      document.getElementById('publicPage').innerHTML = `
+        <div class="glass-card">
+          <div style="background:#f8fafc; border-radius:1.5rem; padding:1.2rem;">
+            <h3>🧾 Order Summary</h3>
+            <p><strong>Order ID:</strong> ${order.id}</p>
+            <p><strong>IMO ID:</strong> ${order.imoId}</p>
+            <p><strong><span class="diamond-icon">💎</span> Diamonds:</strong> ${order.diamonds}</p>
+            <p><strong>💰 Amount:</strong> ₹${order.amount}</p>
+            <div style="background:#eef2ff; padding:0.8rem; border-radius:1rem; margin-top:0.5rem;">📢 <strong>Order received!</strong> Please complete payment.</div>
+          </div>
+          <div style="background:#fff; border-radius:1.5rem; padding:1rem; margin:1rem 0; text-align:center;">
+            <p>📲 Pay via UPI: <strong>${BUSINESS_UPI}</strong></p>
+            <button id="copyUpi" class="btn-primary" style="background:#eef2ff; color:#000;">📋 Copy UPI ID</button>
+            <div style="margin:0.5rem auto; width:100px; background:#f1f5f9; border-radius:1rem; padding:0.5rem;">📱 Scan QR to Pay</div>
+          </div>
+          <div class="flex-row" style="gap:0.5rem;">
+            <button id="payNowBtn" class="btn-primary" style="background:#25D366;">💸 Pay Now (UPI)</button>
+          </div>
+          <div class="countdown-timer" id="redirectInfo">
+            ⏳ After payment, return to this page to auto-confirm
+          </div>
+          <button id="backHomeBtn" class="btn-secondary" style="margin-top:0.5rem;">← Back to Home</button>
+        </div>
+      `;
+      
+      // Copy UPI functionality
+      document.getElementById('copyUpi')?.addEventListener('click', () => {
+        navigator.clipboard.writeText(BUSINESS_UPI);
+        showToast("UPI ID Copied!");
+      });
+      
+      // PAY NOW Button - Opens UPI app, then auto-redirect to WhatsApp on return
+      document.getElementById('payNowBtn')?.addEventListener('click', () => {
+        // Show message that user needs to return after payment
+        showToast("Opening UPI app... Complete payment then come back here");
+        
+        // Open UPI app
+        const upiDeepLink = `upi://pay?pa=${encodeURIComponent(BUSINESS_UPI)}&pn=IMO%20Recharge&am=${order.amount}&cu=INR&tn=Payment%20for%20IMO%20recharge%20Order%20${order.id}`;
+        window.location.href = upiDeepLink;
+        
+        // Update instruction
+        const infoDiv = document.getElementById('redirectInfo');
+        if(infoDiv) {
+          infoDiv.innerHTML = "✅ Payment initiated! After completing payment in UPI app,<br>📱 <strong>return to this page</strong> to auto-confirm on WhatsApp";
+          infoDiv.style.background = "#e8f5e9";
+          infoDiv.style.color = "#2e7d32";
+        }
+      });
+      
+      document.getElementById('backHomeBtn')?.addEventListener('click', () => {
+        pendingOrder = null;
+        location.reload();
+      });
+    }, 1500);
+  }
+  if(pubRechargeBtn) pubRechargeBtn.addEventListener('click', handleRecharge);
+  
+  document.getElementById('helpTutorialBtn')?.addEventListener('click', openTutorialModal);
+  document.getElementById('pubHelpBtn')?.addEventListener('click',()=>{ window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=Hello%20I%20need%20help%20with%20IMO%20recharge`,'_blank'); });
+  document.getElementById('floatWhatsApp')?.addEventListener('click',(e)=>{ e.preventDefault(); window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=Hello%20I%20need%20help%20with%20IMO%20recharge`,'_blank'); });
+  document.getElementById('tutorialModal')?.addEventListener('click', function(e) { if(e.target === this) closeTutorialModal(); });
+  document.getElementById('loginModal')?.addEventListener('click', function(e) { if(e.target === this) closeLoginModal(); });
+  
+  buildPublicGrid();
+  updateTickerDisplay();
+  if(creditPacks.length) updatePublicSelection(creditPacks[0].qty, creditPacks[0].price);
+  if(pubRechargeBtn) pubRechargeBtn.disabled = settings.maintenanceMode;
+</script>
+</body>
+</html>
