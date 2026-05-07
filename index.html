@@ -123,6 +123,7 @@
       margin-top: 0.5rem;
       font-weight: bold;
     }
+    /* Diamond Grid - Box styles remain white/light */
     .diamond-grid {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
@@ -152,6 +153,7 @@
       border-color: #7b2d8e;
       box-shadow: 0 4px 12px rgba(123, 45, 142, 0.2);
     }
+    /* DARK PURPLE WITH BLUE SHINE DIAMOND - Glassy premium effect */
     .diamond-icon {
       display: inline-block;
       background: radial-gradient(circle at 30% 35%, #c77dff, #7b2d8e, #4a1d6d, #2a0a3e, #1a0a2e);
@@ -181,6 +183,69 @@
       font-weight: 600;
       color: #2c3e66;
       margin-top: 4px;
+    }
+    /* Manual Control Section */
+    .manual-control {
+      background: #f8fafc;
+      border-radius: 1.5rem;
+      padding: 1rem;
+      margin: 0.5rem 0 1rem;
+      border: 1px solid #e2e8f0;
+    }
+    .manual-header {
+      font-weight: 700;
+      background: linear-gradient(135deg, #7b2d8e, #9b4d96);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      margin-bottom: 10px;
+      font-size: 0.85rem;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .stepper-wrapper {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: white;
+      border-radius: 3rem;
+      border: 1px solid #cbd5e6;
+      padding: 0.2rem;
+    }
+    .stepper-btn {
+      background: linear-gradient(145deg, #f1f5f9, #e2e8f0);
+      border: none;
+      width: 44px;
+      height: 44px;
+      border-radius: 40px;
+      font-size: 1.5rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: 0.2s;
+      color: #7b2d8e;
+    }
+    .stepper-btn:hover {
+      background: linear-gradient(145deg, #e0e7ff, #c7d2fe);
+      transform: scale(1.02);
+    }
+    .manual-diamond-input {
+      width: 100px;
+      text-align: center;
+      font-size: 1.2rem;
+      font-weight: 700;
+      border: none;
+      background: transparent;
+      outline: none;
+      background: linear-gradient(135deg, #7b2d8e, #9b4d96);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+    input[type=number]::-webkit-inner-spin-button, 
+    input[type=number]::-webkit-outer-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
     }
     input, select, button {
       width: 100%;
@@ -298,6 +363,21 @@
     </div>
     <label>💎 Select Diamond Credit Pack</label>
     <div class="diamond-grid" id="pubDiamondGrid"></div>
+    
+    <!-- Manual Control with Increment/Decrement -->
+    <div class="manual-control">
+      <div class="manual-header">
+        <span>✏️ Manual Entry</span> 
+        <span style="font-size:0.7rem; color:#475569;">(adjust quantity)</span>
+      </div>
+      <div class="stepper-wrapper">
+        <button class="stepper-btn" id="decrementDiamond">−</button>
+        <input type="number" id="manualDiamondInput" class="manual-diamond-input" value="100" min="1" step="1">
+        <button class="stepper-btn" id="incrementDiamond">+</button>
+      </div>
+      <small style="color:#4b5563; display:block; margin-top:8px;">👉 Click preset packs above OR manually enter any diamond quantity</small>
+    </div>
+    
     <div class="price-chip"><span>💰 Total Amount</span><span id="pubAmountPreview">₹0</span></div>
     <button class="btn-primary" id="pubRechargeBtn">🚀 Recharge Now</button>
     <div class="ticker-bar"><div class="ticker-scroll" id="liveTickerText">✨ Loading offers...</div></div>
@@ -418,7 +498,7 @@
   let currentUser = null;
   let currentSelectedQty = 100;
   let currentSelectedPrice = 175;
-  let pendingOrder = null; // Store order for auto-redirect after returning from UPI
+  let pendingOrder = null;
   
   function saveOrders() { localStorage.setItem('imo_orders', JSON.stringify(orders)); }
   function loadOrders() { const data = localStorage.getItem('imo_orders'); if(data) orders = JSON.parse(data); else orders = []; }
@@ -431,6 +511,29 @@
   
   function showToast(msg, duration=2500) { let t=document.querySelector('.toast'); if(t) t.remove(); const div=document.createElement('div'); div.className='toast'; div.innerText=msg; document.body.appendChild(div); setTimeout(()=>div.remove(),duration); }
   
+  // Get price for a given quantity (interpolates between packs or uses nearest)
+  function getPriceForQuantity(qty) {
+    if (qty <= 0) return 0;
+    // Find exact match
+    const exactMatch = creditPacks.find(p => p.qty === qty);
+    if (exactMatch) return exactMatch.price;
+    // Find surrounding packs for interpolation
+    const sorted = [...creditPacks].sort((a,b) => a.qty - b.qty);
+    let lower = null, higher = null;
+    for (let pack of sorted) {
+      if (pack.qty <= qty) lower = pack;
+      if (pack.qty >= qty && higher === null) higher = pack;
+    }
+    if (lower && higher && lower.qty !== higher.qty) {
+      // Interpolate price
+      const ratio = (qty - lower.qty) / (higher.qty - lower.qty);
+      return Math.round(lower.price + (higher.price - lower.price) * ratio);
+    }
+    if (lower) return lower.price;
+    if (higher) return higher.price;
+    return qty * 3; // fallback
+  }
+  
   function updatePublicSelection(qty, price) {
     currentSelectedQty = qty;
     currentSelectedPrice = price;
@@ -440,6 +543,11 @@
       if(elQty === qty) el.classList.add('selected');
       else el.classList.remove('selected');
     });
+    // Update manual input value
+    const manualInput = document.getElementById('manualDiamondInput');
+    if (manualInput && parseInt(manualInput.value) !== qty) {
+      manualInput.value = qty;
+    }
   }
   
   function buildPublicGrid() {
@@ -452,10 +560,71 @@
       if(currentSelectedQty === pack.qty) div.classList.add('selected');
       div.setAttribute('data-qty', pack.qty);
       div.innerHTML = `<div class="diamond-qty"><span class="diamond-icon">💎</span> ${pack.qty}</div><div class="diamond-price">₹${pack.price}</div>`;
-      div.onclick = () => { updatePublicSelection(pack.qty, pack.price); };
+      div.onclick = () => { 
+        currentSelectedQty = pack.qty;
+        currentSelectedPrice = pack.price;
+        updatePublicSelection(pack.qty, pack.price);
+      };
       grid.appendChild(div);
     });
     if(creditPacks.length && !creditPacks.find(p=>p.qty===currentSelectedQty)) updatePublicSelection(creditPacks[0].qty, creditPacks[0].price);
+  }
+  
+  // Manual control handlers
+  const manualDiamondInput = document.getElementById('manualDiamondInput');
+  const decrementBtn = document.getElementById('decrementDiamond');
+  const incrementBtn = document.getElementById('incrementDiamond');
+  
+  function updateFromManualInput() {
+    let qty = parseInt(manualDiamondInput.value, 10);
+    if (isNaN(qty) || qty < 1) qty = 1;
+    manualDiamondInput.value = qty;
+    const price = getPriceForQuantity(qty);
+    currentSelectedQty = qty;
+    currentSelectedPrice = price;
+    document.getElementById('pubAmountPreview').innerText = `₹${price}`;
+    // Update grid highlighting
+    document.querySelectorAll('#pubDiamondGrid .diamond-option').forEach(el => {
+      const elQty = parseInt(el.getAttribute('data-qty'));
+      if(elQty === qty) el.classList.add('selected');
+      else el.classList.remove('selected');
+    });
+  }
+  
+  if (manualDiamondInput) {
+    manualDiamondInput.addEventListener('input', function() {
+      let val = parseInt(this.value, 10);
+      if (isNaN(val)) val = 1;
+      if (val < 1) val = 1;
+      this.value = val;
+      updateFromManualInput();
+    });
+    manualDiamondInput.addEventListener('blur', function() {
+      let val = parseInt(this.value, 10);
+      if (isNaN(val) || val < 1) this.value = 1;
+      updateFromManualInput();
+    });
+  }
+  
+  if (decrementBtn) {
+    decrementBtn.addEventListener('click', () => {
+      let currentVal = parseInt(manualDiamondInput.value, 10);
+      if (isNaN(currentVal)) currentVal = 1;
+      let newVal = currentVal - 1;
+      if (newVal < 1) newVal = 1;
+      manualDiamondInput.value = newVal;
+      updateFromManualInput();
+    });
+  }
+  
+  if (incrementBtn) {
+    incrementBtn.addEventListener('click', () => {
+      let currentVal = parseInt(manualDiamondInput.value, 10);
+      if (isNaN(currentVal)) currentVal = 1;
+      let newVal = currentVal + 1;
+      manualDiamondInput.value = newVal;
+      updateFromManualInput();
+    });
   }
   
   function renderAdminCreditList() {
@@ -555,18 +724,15 @@
   function openLoginModal() { document.getElementById('loginModal').classList.add('active'); document.getElementById('loginError').innerText = ''; document.getElementById('loginEmail').value = ''; document.getElementById('loginPassword').value = ''; }
   function closeLoginModal() { document.getElementById('loginModal').classList.remove('active'); }
   
-  // Function to redirect to WhatsApp with order details
   function redirectToWhatsApp(order) {
     const whatsappMessage = `Hello%2C%20I%20have%20completed%20the%20payment%20for%20IMO%20recharge.%0A%0A📌%20*Order%20Details%3A*%0A🆔%20Order%20ID%3A%20${order.id}%0A👤%20IMO%20ID%3A%20${encodeURIComponent(order.imoId)}%0A💎%20Diamonds%3A%20${order.diamonds}%0A💰%20Amount%3A%20₹${order.amount}%0A%0A✅%20Payment%20done%20via%20UPI%20(${BUSINESS_UPI})%0A📱%20Please%20verify%20and%20recharge%20manually.%0A%0AThank%20you!`;
     const waLink = `https://wa.me/${WHATSAPP_NUMBER}?text=${whatsappMessage}`;
     window.open(waLink, '_blank');
   }
   
-  // Check if user returned from UPI app (page visibility change)
   let upiRedirectTriggered = false;
   document.addEventListener('visibilitychange', function() {
     if (!document.hidden && pendingOrder && !upiRedirectTriggered) {
-      // User came back to the page after UPI app
       upiRedirectTriggered = true;
       showToast("✅ Payment completed! Redirecting to WhatsApp...");
       setTimeout(() => {
@@ -625,17 +791,16 @@
     if(settings.maintenanceMode) { showToast("🔧 Maintenance mode active. Recharge disabled."); return; }
     const imoId = document.getElementById('pubImoId').value.trim();
     if(!imoId || imoId.length<3) { showToast("❌ Valid IMO ID required"); return; }
-    if(!currentSelectedQty) { showToast("Select diamond pack"); return; }
+    if(!currentSelectedQty || currentSelectedQty <= 0) { showToast("Select diamond pack or enter valid quantity"); return; }
     const amount = currentSelectedPrice;
     pubRechargeBtn.disabled = true; pubRechargeBtn.innerText = "⏳ Processing...";
     
     setTimeout(() => {
       const order = createOrder(imoId, currentSelectedQty, amount);
-      pendingOrder = order; // Store for auto-redirect after returning from UPI
+      pendingOrder = order;
       upiRedirectTriggered = false;
       pubRechargeBtn.disabled = false; pubRechargeBtn.innerText = "🚀 Recharge Now";
       
-      // Show payment screen with UPI and auto-redirect info
       document.getElementById('publicPage').innerHTML = `
         <div class="glass-card">
           <div style="background:#f8fafc; border-radius:1.5rem; padding:1.2rem;">
@@ -661,22 +826,15 @@
         </div>
       `;
       
-      // Copy UPI functionality
       document.getElementById('copyUpi')?.addEventListener('click', () => {
         navigator.clipboard.writeText(BUSINESS_UPI);
         showToast("UPI ID Copied!");
       });
       
-      // PAY NOW Button - Opens UPI app, then auto-redirect to WhatsApp on return
       document.getElementById('payNowBtn')?.addEventListener('click', () => {
-        // Show message that user needs to return after payment
         showToast("Opening UPI app... Complete payment then come back here");
-        
-        // Open UPI app
         const upiDeepLink = `upi://pay?pa=${encodeURIComponent(BUSINESS_UPI)}&pn=IMO%20Recharge&am=${order.amount}&cu=INR&tn=Payment%20for%20IMO%20recharge%20Order%20${order.id}`;
         window.location.href = upiDeepLink;
-        
-        // Update instruction
         const infoDiv = document.getElementById('redirectInfo');
         if(infoDiv) {
           infoDiv.innerHTML = "✅ Payment initiated! After completing payment in UPI app,<br>📱 <strong>return to this page</strong> to auto-confirm on WhatsApp";
