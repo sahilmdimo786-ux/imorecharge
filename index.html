@@ -123,7 +123,6 @@
       margin-top: 0.5rem;
       font-weight: bold;
     }
-    /* Diamond Grid - Box styles remain white/light */
     .diamond-grid {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
@@ -153,7 +152,6 @@
       border-color: #7b2d8e;
       box-shadow: 0 4px 12px rgba(123, 45, 142, 0.2);
     }
-    /* DARK PURPLE WITH BLUE SHINE DIAMOND - Glassy premium effect */
     .diamond-icon {
       display: inline-block;
       background: radial-gradient(circle at 30% 35%, #c77dff, #7b2d8e, #4a1d6d, #2a0a3e, #1a0a2e);
@@ -237,10 +235,7 @@
       border: none;
       background: transparent;
       outline: none;
-      background: linear-gradient(135deg, #7b2d8e, #9b4d96);
-      -webkit-background-clip: text;
-      background-clip: text;
-      color: transparent;
+      color: #7b2d8e;
     }
     input[type=number]::-webkit-inner-spin-button, 
     input[type=number]::-webkit-outer-spin-button {
@@ -274,6 +269,10 @@
       background: #eef2ff;
       color: #334155;
       border: 1px solid #cbd5e6;
+    }
+    .disabled-btn {
+      opacity: 0.6;
+      cursor: not-allowed;
     }
     .hidden { display: none; }
     .toast {
@@ -342,7 +341,12 @@
       font-size: 0.8rem;
       color: #7b2d8e;
     }
-    @media (max-width: 500px) { .diamond-grid { grid-template-columns: repeat(3, 1fr); } .glass-card { padding: 1.2rem; } }
+    @media (max-width: 500px) { 
+      .diamond-grid { grid-template-columns: repeat(3, 1fr); } 
+      .glass-card { padding: 1.2rem; }
+      .stepper-btn { width: 38px; height: 38px; font-size: 1.3rem; }
+      .manual-diamond-input { width: 90px; font-size: 1rem; }
+    }
   </style>
 </head>
 <body>
@@ -368,14 +372,14 @@
     <div class="manual-control">
       <div class="manual-header">
         <span>✏️ Manual Entry</span> 
-        <span style="font-size:0.7rem; color:#475569;">(adjust quantity)</span>
+        <span style="font-size:0.7rem; color:#475569;">(type any number)</span>
       </div>
       <div class="stepper-wrapper">
         <button class="stepper-btn" id="decrementDiamond">−</button>
-        <input type="number" id="manualDiamondInput" class="manual-diamond-input" value="100" min="1" step="1">
+        <input type="number" id="manualDiamondInput" class="manual-diamond-input" value="100" min="10" step="1">
         <button class="stepper-btn" id="incrementDiamond">+</button>
       </div>
-      <small style="color:#4b5563; display:block; margin-top:8px;">👉 Click preset packs above OR manually enter any diamond quantity</small>
+      <small style="color:#4b5563; display:block; margin-top:8px;">👉 Minimum 10 diamonds (₹30) | Type any number or use +/- buttons</small>
     </div>
     
     <div class="price-chip"><span>💰 Total Amount</span><span id="pubAmountPreview">₹0</span></div>
@@ -476,6 +480,8 @@
   // ========== BUSINESS CONFIGURATION ==========
   const BUSINESS_UPI = "6203240682@okbizaxis";
   const WHATSAPP_NUMBER = "919472898572";
+  const MIN_DIAMONDS = 10;
+  const DIAMOND_PRICE = 3;
 
   // ========== APP STATE ==========
   let creditPacks = [
@@ -511,13 +517,10 @@
   
   function showToast(msg, duration=2500) { let t=document.querySelector('.toast'); if(t) t.remove(); const div=document.createElement('div'); div.className='toast'; div.innerText=msg; document.body.appendChild(div); setTimeout(()=>div.remove(),duration); }
   
-  // Get price for a given quantity (interpolates between packs or uses nearest)
   function getPriceForQuantity(qty) {
-    if (qty <= 0) return 0;
-    // Find exact match
+    if (qty < MIN_DIAMONDS) return MIN_DIAMONDS * DIAMOND_PRICE;
     const exactMatch = creditPacks.find(p => p.qty === qty);
     if (exactMatch) return exactMatch.price;
-    // Find surrounding packs for interpolation
     const sorted = [...creditPacks].sort((a,b) => a.qty - b.qty);
     let lower = null, higher = null;
     for (let pack of sorted) {
@@ -525,29 +528,44 @@
       if (pack.qty >= qty && higher === null) higher = pack;
     }
     if (lower && higher && lower.qty !== higher.qty) {
-      // Interpolate price
       const ratio = (qty - lower.qty) / (higher.qty - lower.qty);
       return Math.round(lower.price + (higher.price - lower.price) * ratio);
     }
     if (lower) return lower.price;
     if (higher) return higher.price;
-    return qty * 3; // fallback
+    return qty * DIAMOND_PRICE;
   }
   
-  function updatePublicSelection(qty, price) {
+  // Update button state based on diamond quantity
+  function updateRechargeButtonState() {
+    const rechargeBtn = document.getElementById('pubRechargeBtn');
+    if (!rechargeBtn) return;
+    
+    if (currentSelectedQty < MIN_DIAMONDS) {
+      rechargeBtn.disabled = true;
+      rechargeBtn.style.opacity = '0.6';
+      rechargeBtn.style.cursor = 'not-allowed';
+    } else {
+      rechargeBtn.disabled = false;
+      rechargeBtn.style.opacity = '1';
+      rechargeBtn.style.cursor = 'pointer';
+    }
+  }
+  
+  // Refresh UI based on current qty
+  function refreshUIFromQuantity(qty) {
+    const price = getPriceForQuantity(qty);
     currentSelectedQty = qty;
     currentSelectedPrice = price;
     document.getElementById('pubAmountPreview').innerText = `₹${price}`;
+    // Update grid highlight (remove highlight for custom values)
     document.querySelectorAll('#pubDiamondGrid .diamond-option').forEach(el => {
       const elQty = parseInt(el.getAttribute('data-qty'));
       if(elQty === qty) el.classList.add('selected');
       else el.classList.remove('selected');
     });
-    // Update manual input value
-    const manualInput = document.getElementById('manualDiamondInput');
-    if (manualInput && parseInt(manualInput.value) !== qty) {
-      manualInput.value = qty;
-    }
+    // Update button state
+    updateRechargeButtonState();
   }
   
   function buildPublicGrid() {
@@ -563,67 +581,72 @@
       div.onclick = () => { 
         currentSelectedQty = pack.qty;
         currentSelectedPrice = pack.price;
-        updatePublicSelection(pack.qty, pack.price);
+        refreshUIFromQuantity(pack.qty);
+        // Update manual input without triggering events
+        manualDiamondInput.value = pack.qty;
       };
       grid.appendChild(div);
     });
-    if(creditPacks.length && !creditPacks.find(p=>p.qty===currentSelectedQty)) updatePublicSelection(creditPacks[0].qty, creditPacks[0].price);
   }
   
-  // Manual control handlers
+  // Get DOM elements
   const manualDiamondInput = document.getElementById('manualDiamondInput');
   const decrementBtn = document.getElementById('decrementDiamond');
   const incrementBtn = document.getElementById('incrementDiamond');
   
-  function updateFromManualInput() {
-    let qty = parseInt(manualDiamondInput.value, 10);
-    if (isNaN(qty) || qty < 1) qty = 1;
-    manualDiamondInput.value = qty;
-    const price = getPriceForQuantity(qty);
-    currentSelectedQty = qty;
-    currentSelectedPrice = price;
-    document.getElementById('pubAmountPreview').innerText = `₹${price}`;
-    // Update grid highlighting
-    document.querySelectorAll('#pubDiamondGrid .diamond-option').forEach(el => {
-      const elQty = parseInt(el.getAttribute('data-qty'));
-      if(elQty === qty) el.classList.add('selected');
-      else el.classList.remove('selected');
-    });
-  }
-  
+  // Manual input event - user types directly (FIXED: allows any number)
   if (manualDiamondInput) {
-    manualDiamondInput.addEventListener('input', function() {
+    manualDiamondInput.addEventListener('input', function(e) {
       let val = parseInt(this.value, 10);
-      if (isNaN(val)) val = 1;
-      if (val < 1) val = 1;
-      this.value = val;
-      updateFromManualInput();
+      if (!isNaN(val)) {
+        // Allow any number, just update UI
+        refreshUIFromQuantity(val);
+      } else if (this.value === '') {
+        // If empty, don't update but keep last valid
+        return;
+      }
     });
+    
     manualDiamondInput.addEventListener('blur', function() {
       let val = parseInt(this.value, 10);
-      if (isNaN(val) || val < 1) this.value = 1;
-      updateFromManualInput();
+      if (isNaN(val)) {
+        this.value = MIN_DIAMONDS;
+        refreshUIFromQuantity(MIN_DIAMONDS);
+      } else if (val < MIN_DIAMONDS) {
+        // Show alert and reset to minimum when user tries to leave with less than 10
+        showToast(`❌ Minimum ${MIN_DIAMONDS} diamonds required!`, 2000);
+        this.value = MIN_DIAMONDS;
+        refreshUIFromQuantity(MIN_DIAMONDS);
+      } else {
+        this.value = val;
+        refreshUIFromQuantity(val);
+      }
     });
   }
   
+  // Decrement button
   if (decrementBtn) {
     decrementBtn.addEventListener('click', () => {
       let currentVal = parseInt(manualDiamondInput.value, 10);
-      if (isNaN(currentVal)) currentVal = 1;
+      if (isNaN(currentVal)) currentVal = MIN_DIAMONDS;
       let newVal = currentVal - 1;
-      if (newVal < 1) newVal = 1;
+      if (newVal < MIN_DIAMONDS) {
+        showToast(`❌ Minimum ${MIN_DIAMONDS} diamonds required!`, 1500);
+        newVal = MIN_DIAMONDS;
+      }
       manualDiamondInput.value = newVal;
-      updateFromManualInput();
+      refreshUIFromQuantity(newVal);
     });
   }
   
+  // Increment button
   if (incrementBtn) {
     incrementBtn.addEventListener('click', () => {
       let currentVal = parseInt(manualDiamondInput.value, 10);
-      if (isNaN(currentVal)) currentVal = 1;
+      if (isNaN(currentVal)) currentVal = MIN_DIAMONDS;
       let newVal = currentVal + 1;
       manualDiamondInput.value = newVal;
-      updateFromManualInput();
+      refreshUIFromQuantity(newVal);
     });
   }
   
@@ -655,6 +678,7 @@
           renderAdminCreditList();
           renderAdminOrders();
           showToast("Credit pack updated!");
+          refreshUIFromQuantity(currentSelectedQty);
         } else showToast("Invalid values");
       });
     });
@@ -667,6 +691,7 @@
           buildPublicGrid();
           renderAdminCreditList();
           showToast("Pack deleted");
+          refreshUIFromQuantity(currentSelectedQty);
         } else showToast("Cannot delete last pack");
       });
     });
@@ -680,6 +705,7 @@
     buildPublicGrid();
     renderAdminCreditList();
     showToast("New pack added");
+    refreshUIFromQuantity(currentSelectedQty);
   });
   
   function genOrderId() { return 'IMO-' + Date.now() + '-' + Math.floor(Math.random()*10000); }
@@ -788,10 +814,19 @@
   
   const pubRechargeBtn = document.getElementById('pubRechargeBtn');
   async function handleRecharge() {
+    // Check maintenance mode
     if(settings.maintenanceMode) { showToast("🔧 Maintenance mode active. Recharge disabled."); return; }
+    
+    // Validate IMO ID
     const imoId = document.getElementById('pubImoId').value.trim();
     if(!imoId || imoId.length<3) { showToast("❌ Valid IMO ID required"); return; }
-    if(!currentSelectedQty || currentSelectedQty <= 0) { showToast("Select diamond pack or enter valid quantity"); return; }
+    
+    // Validate diamond quantity - Show alert if less than minimum
+    if(!currentSelectedQty || currentSelectedQty < MIN_DIAMONDS) {
+      showToast(`❌ Minimum ${MIN_DIAMONDS} diamonds required! Current: ${currentSelectedQty || 0} diamonds`, 2500);
+      return;
+    }
+    
     const amount = currentSelectedPrice;
     pubRechargeBtn.disabled = true; pubRechargeBtn.innerText = "⏳ Processing...";
     
@@ -859,7 +894,9 @@
   
   buildPublicGrid();
   updateTickerDisplay();
-  if(creditPacks.length) updatePublicSelection(creditPacks[0].qty, creditPacks[0].price);
+  manualDiamondInput.value = 100;
+  refreshUIFromQuantity(100);
+  updateRechargeButtonState();
   if(pubRechargeBtn) pubRechargeBtn.disabled = settings.maintenanceMode;
 </script>
 </body>
