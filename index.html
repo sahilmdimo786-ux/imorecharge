@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
-  <title>IMO Recharge • Premium Purple Diamond Store</title>
+  <title>IMO Recharge • Secure UPI Payment</title>
   <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
@@ -56,11 +56,6 @@
       display: flex;
       align-items: center;
       justify-content: center;
-    }
-    .help-btn:hover {
-      background: #0d6efd;
-      color: white;
-      transform: scale(1.02);
     }
     .modal-overlay {
       position: fixed;
@@ -182,7 +177,6 @@
       color: #2c3e66;
       margin-top: 4px;
     }
-    /* Manual Control Section */
     .manual-control {
       background: #f8fafc;
       border-radius: 1.5rem;
@@ -223,10 +217,6 @@
       transition: 0.2s;
       color: #7b2d8e;
     }
-    .stepper-btn:hover {
-      background: linear-gradient(145deg, #e0e7ff, #c7d2fe);
-      transform: scale(1.02);
-    }
     .manual-diamond-input {
       width: 100px;
       text-align: center;
@@ -257,10 +247,6 @@
       cursor: pointer;
       border: none;
     }
-    .btn-primary:hover {
-      background: linear-gradient(145deg, #9b4d96, #6a2d8e);
-      transform: translateY(-1px);
-    }
     .btn-primary:disabled {
       opacity: 0.6;
       cursor: not-allowed;
@@ -270,11 +256,19 @@
       color: #334155;
       border: 1px solid #cbd5e6;
     }
-    .disabled-btn {
-      opacity: 0.6;
-      cursor: not-allowed;
+    .btn-whatsapp {
+      background: #25D366;
     }
-    .hidden { display: none; }
+    .flex-row { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
+    .price-chip { background: #eef2ff; border-radius: 2rem; padding: 0.7rem; margin: 0.5rem 0; display: flex; justify-content: space-between; font-weight: bold; }
+    .ticker-bar { background: #eef2ffcc; border-radius: 2rem; padding: 0.5rem; margin: 1rem 0; overflow: hidden; white-space: nowrap; }
+    .ticker-scroll { display: inline-block; animation: slideTicker 22s linear infinite; }
+    @keyframes slideTicker { 0% { transform: translateX(0%); } 100% { transform: translateX(-50%); } }
+    .whatsapp-float {
+      position: fixed; bottom: 1.5rem; right: 1.5rem; background: #25D366; width: 56px; height: 56px;
+      border-radius: 30px; display: flex; align-items: center; justify-content: center; color: white;
+      font-size: 1.8rem; text-decoration: none; z-index: 99; box-shadow: 0 10px 20px rgba(0,0,0,0.15);
+    }
     .toast {
       position: fixed;
       bottom: 80px;
@@ -289,181 +283,144 @@
       animation: fadeOut 2s ease forwards;
     }
     @keyframes fadeOut { 0% { opacity: 1; } 70% { opacity: 1; } 100% { opacity: 0; visibility: hidden; } }
-    .admin-badge {
-      position: fixed;
-      top: 1rem;
-      right: 1rem;
-      background: #7b2d8e;
-      color: white;
-      padding: 0.4rem 1rem;
-      border-radius: 2rem;
-      cursor: pointer;
-      font-size: 0.8rem;
-      z-index: 200;
-    }
-    .admin-badge.logged-in {
-      background: #10b981;
-    }
-    table { width: 100%; border-collapse: collapse; font-size: 0.75rem; }
-    th, td { padding: 0.5rem; border-bottom: 1px solid #ddd; text-align: left; }
-    .status-paid { color: green; font-weight: bold; }
-    .status-pending { color: orange; }
-    .mark-paid-btn { background: #25D366; color: white; border: none; padding: 0.2rem 0.6rem; border-radius: 1rem; cursor: pointer; }
-    .flex-row { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
-    .price-chip { background: #eef2ff; border-radius: 2rem; padding: 0.7rem; margin: 0.5rem 0; display: flex; justify-content: space-between; font-weight: bold; }
-    .ticker-bar { background: #eef2ffcc; border-radius: 2rem; padding: 0.5rem; margin: 1rem 0; overflow: hidden; white-space: nowrap; }
-    .ticker-scroll { display: inline-block; animation: slideTicker 22s linear infinite; }
-    @keyframes slideTicker { 0% { transform: translateX(0%); } 100% { transform: translateX(-50%); } }
-    .whatsapp-float {
-      position: fixed; bottom: 1.5rem; right: 1.5rem; background: #25D366; width: 56px; height: 56px;
-      border-radius: 30px; display: flex; align-items: center; justify-content: center; color: white;
-      font-size: 1.8rem; text-decoration: none; z-index: 99; box-shadow: 0 10px 20px rgba(0,0,0,0.15);
-    }
-    .login-form {
-      display: flex;
-      flex-direction: column;
-      gap: 0.5rem;
-    }
-    .login-form input {
-      margin: 0;
-    }
-    .error-msg {
-      color: #dc2626;
-      font-size: 0.8rem;
-      margin-top: 0.5rem;
-    }
-    .countdown-timer {
+    .qr-container {
+      background: white;
+      border-radius: 1rem;
+      padding: 1rem;
       text-align: center;
-      margin-top: 1rem;
-      padding: 0.5rem;
-      background: #f0f4ff;
-      border-radius: 2rem;
-      font-size: 0.8rem;
-      color: #7b2d8e;
+      margin: 1rem 0;
+      border: 1px dashed #7b2d8e;
     }
+    .upi-id {
+      font-size: 1.1rem;
+      font-weight: bold;
+      color: #7b2d8e;
+      word-break: break-all;
+    }
+    .loading-spinner {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 2px solid #fff;
+      border-radius: 50%;
+      border-top-color: transparent;
+      animation: spin 0.6s linear infinite;
+      margin-right: 8px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
     @media (max-width: 500px) { 
       .diamond-grid { grid-template-columns: repeat(3, 1fr); } 
       .glass-card { padding: 1.2rem; }
-      .stepper-btn { width: 38px; height: 38px; font-size: 1.3rem; }
-      .manual-diamond-input { width: 90px; font-size: 1rem; }
+      .stepper-btn { width: 38px; height: 38px; }
+      .manual-diamond-input { width: 90px; }
     }
   </style>
 </head>
 <body>
 
-<div class="admin-badge" id="adminToggleBtn">🔐 Admin Login</div>
-
-<!-- PUBLIC RECHARGE PAGE -->
-<div id="publicPage">
+<div id="app">
   <div class="glass-card">
-    <div class="hero"><h1><span class="diamond-icon">💎</span> IMO Recharge</h1><p>Fast & Secure Manual Diamond Recharge</p></div>
+    <div class="hero"><h1><span class="diamond-icon">💎</span> IMO Recharge</h1><p>Secure UPI Payment • Instant Confirmation</p></div>
+    
+    <!-- IMO ID Field -->
     <div class="input-field">
       <label>🆔 IMO Profile ID</label>
       <div class="input-with-help">
-        <input type="text" id="pubImoId" placeholder="Enter your IMO Profile ID" autocomplete="off">
-        <button class="help-btn" id="helpTutorialBtn">?</button>
+        <input type="text" id="imoId" placeholder="Enter your IMO Profile ID" autocomplete="off">
+        <button class="help-btn" id="helpBtn">?</button>
       </div>
-      <small style="color:#4b5563;">Click ? to watch how to find your IMO ID</small>
     </div>
-    <label>💎 Select Diamond Credit Pack</label>
-    <div class="diamond-grid" id="pubDiamondGrid"></div>
     
-    <!-- Manual Control with Increment/Decrement -->
+    <!-- Diamond Pack Selection -->
+    <label>💎 Select Diamond Pack</label>
+    <div class="diamond-grid" id="diamondGrid"></div>
+    
+    <!-- Manual Entry -->
     <div class="manual-control">
-      <div class="manual-header">
-        <span>✏️ Manual Entry</span> 
-        <span style="font-size:0.7rem; color:#475569;">(type any number)</span>
-      </div>
+      <div class="manual-header"><span>✏️ Custom Quantity</span></div>
       <div class="stepper-wrapper">
-        <button class="stepper-btn" id="decrementDiamond">−</button>
-        <input type="number" id="manualDiamondInput" class="manual-diamond-input" value="100" min="10" step="1">
-        <button class="stepper-btn" id="incrementDiamond">+</button>
+        <button class="stepper-btn" id="decrementBtn">−</button>
+        <input type="number" id="manualQty" class="manual-diamond-input" value="100" min="10" step="1">
+        <button class="stepper-btn" id="incrementBtn">+</button>
       </div>
-      <small style="color:#4b5563; display:block; margin-top:8px;">👉 Minimum 10 diamonds (₹30) | Type any number or use +/- buttons</small>
+      <small style="display:block; margin-top:8px;">👉 Minimum 10 diamonds (₹30)</small>
     </div>
     
-    <div class="price-chip"><span>💰 Total Amount</span><span id="pubAmountPreview">₹0</span></div>
-    <button class="btn-primary" id="pubRechargeBtn">🚀 Recharge Now</button>
-    <div class="ticker-bar"><div class="ticker-scroll" id="liveTickerText">✨ Loading offers...</div></div>
+    <!-- Price Display -->
+    <div class="price-chip"><span>💰 Total Amount</span><span id="amountDisplay">₹0</span></div>
+    
+    <!-- Recharge Button -->
+    <button class="btn-primary" id="rechargeBtn">🚀 Proceed to Pay</button>
+    
+    <!-- Ticker -->
+    <div class="ticker-bar"><div class="ticker-scroll" id="tickerText">✨ Secure UPI Payment • Instant Recharge</div></div>
+    
+    <!-- Trust Badges -->
     <div class="flex-row" style="justify-content:space-between; margin:0.5rem 0;">
-      <span class="badge" style="background:#eef2ff; padding:0.3rem 0.8rem; border-radius:2rem;">🔒 Secure Payment</span>
-      <span class="badge" style="background:#eef2ff; padding:0.3rem 0.8rem; border-radius:2rem;">⚡ Fast Delivery</span>
-      <span class="badge" style="background:#eef2ff; padding:0.3rem 0.8rem; border-radius:2rem;">🕒 24/7 Support</span>
+      <span style="background:#eef2ff; padding:0.3rem 0.8rem; border-radius:2rem;">🔒 UPI Secure</span>
+      <span style="background:#eef2ff; padding:0.3rem 0.8rem; border-radius:2rem;">⚡ Fast Delivery</span>
+      <span style="background:#eef2ff; padding:0.3rem 0.8rem; border-radius:2rem;">🕒 24/7 Support</span>
     </div>
+    
+    <!-- Help Section -->
     <div class="flex-row" style="justify-content:space-between; background:#f1f5f9; border-radius:1.5rem; padding:0.7rem; margin-top:0.5rem;">
       <span>❓ Need help?</span>
-      <button id="pubHelpBtn" style="width:auto; background:#25D366; color:white; border:none; padding:0.3rem 1rem;">💬 WhatsApp</button>
-    </div>
-    <footer style="font-size:0.6rem; text-align:center; margin-top:1rem;">⚠️ Manual recharge service. Not affiliated with IMO.</footer>
-  </div>
-</div>
-
-<!-- ADMIN PANEL -->
-<div id="adminPage" style="display:none;">
-  <div class="glass-card">
-    <h2>🔧 Admin Dashboard</h2>
-    <div class="flex-row" style="justify-content:space-between; margin:1rem 0;">
-      <button id="adminLogoutBtn" style="background:#dc2626; width:auto; padding:0.4rem 1rem;">🚪 Logout</button>
-      <button id="toggleMaintenanceBtn" class="maintenance-toggle" style="width:auto;">🛠️ Maintenance: OFF</button>
+      <button id="helpWhatsAppBtn" style="width:auto; background:#25D366; color:white; border:none; padding:0.3rem 1rem;">💬 WhatsApp</button>
     </div>
     
-    <div style="background:#eef2ff; padding:1rem; border-radius:1.5rem; margin:1rem 0;">
-      <label>💰 Diamond Credit Packs (Qty → Price)</label>
-      <div id="creditListAdmin" style="display:grid; grid-template-columns:repeat(2,1fr); gap:0.5rem; margin:0.5rem 0;"></div>
-      <button id="addCreditPackBtn" style="background:#7b2d8e; color:white; width:auto;">+ Add New Pack</button>
-    </div>
-
-    <div style="background:#eef2ff; padding:1rem; border-radius:1.5rem; margin:1rem 0;">
-      <label>📢 Auto-Scrolling Ticker (separate with | )</label>
-      <input type="text" id="adminTickerMsg" placeholder="e.g., Special Offer! | Limited Time">
-      <button id="updateTickerBtn" class="btn-primary">Update Ticker</button>
-    </div>
-
-    <h3>📋 Orders / Payment Requests</h3>
-    <div style="overflow-x:auto;"><table id="ordersTable"><thead><tr><th>Order ID</th><th>IMO ID</th><th>Diamonds</th><th>Amount</th><th>Status</th><th>Action</th></tr></thead><tbody id="ordersTableBody"></tbody></table></div>
-    <p style="font-size:0.7rem; margin-top:0.5rem;">✅ Mark as "Paid" → Order completed.</p>
+    <footer style="font-size:0.6rem; text-align:center; margin-top:1rem;">⚠️ Manual recharge after payment verification.</footer>
   </div>
 </div>
 
-<!-- TUTORIAL MODAL -->
+<!-- Tutorial Modal -->
 <div id="tutorialModal" class="modal-overlay">
   <div class="modal-content">
-    <h3>📱 How to find your IMO Profile ID?</h3>
-    <p>Watch this short tutorial 👇</p>
+    <h3>📱 How to find IMO Profile ID?</h3>
     <div class="video-container">
-      <iframe 
-        src="https://www.youtube.com/embed/0b7LXsb76Kg" 
-        title="How to find IMO Profile ID Tutorial"
-        frameborder="0"
-        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-        referrerpolicy="strict-origin-when-cross-origin"
-        allowfullscreen>
-      </iframe>
+      <iframe src="https://www.youtube.com/embed/0b7LXsb76Kg" allowfullscreen></iframe>
     </div>
-    <p style="font-size:0.75rem; color:#6c757d;">Step 1: Open IMO app → Profile → Tap on profile picture<br>Step 2: Your IMO ID is shown below your name (Copy it)</p>
-    <button class="close-modal-btn" onclick="closeTutorialModal()">Got it! ✨</button>
+    <button class="close-modal-btn" onclick="closeTutorial()">Got it!</button>
   </div>
 </div>
 
-<!-- LOGIN MODAL -->
-<div id="loginModal" class="modal-overlay">
-  <div class="modal-content">
-    <h3>🔐 Admin Login</h3>
-    <p>Enter your credentials to access admin panel</p>
-    <div class="login-form">
-      <input type="email" id="loginEmail" placeholder="Email address" autocomplete="email">
-      <input type="password" id="loginPassword" placeholder="Password" autocomplete="current-password">
-      <button id="loginSubmitBtn" class="btn-primary">Login</button>
-      <div id="loginError" class="error-msg"></div>
+<!-- Payment Modal -->
+<div id="paymentModal" class="modal-overlay">
+  <div class="modal-content" style="max-width: 500px;">
+    <h3>💎 Complete Payment</h3>
+    <div id="orderSummary" style="background:#f8fafc; border-radius:1rem; padding:1rem; margin:1rem 0; text-align:left;"></div>
+    <div class="qr-container">
+      <p>📲 UPI ID: <span class="upi-id" id="upiIdDisplay">6203240682@okbizaxis</span></p>
+      <button id="copyUpiBtn" style="width:auto; background:#eef2ff; margin-top:0.5rem;">📋 Copy UPI ID</button>
     </div>
-    <button class="close-modal-btn" style="background:#6c757d; margin-top:0.5rem;" onclick="closeLoginModal()">Cancel</button>
+    <div class="flex-row" style="gap:0.5rem;">
+      <button id="payWithUpiBtn" class="btn-primary" style="flex:2;">💸 Pay with UPI</button>
+      <button id="qrFallbackBtn" class="btn-secondary" style="flex:1;">📱 QR</button>
+    </div>
+    <button id="whatsappConfirmBtn" class="btn-primary btn-whatsapp" style="margin-top:0.5rem;">✅ Confirm Payment via WhatsApp</button>
+    <button id="closePaymentModal" class="btn-secondary" style="margin-top:0.5rem;">← Back</button>
+  </div>
+</div>
+
+<!-- QR Modal -->
+<div id="qrModal" class="modal-overlay">
+  <div class="modal-content">
+    <h3>📱 Scan to Pay</h3>
+    <div id="qrCodeContainer" style="margin:1rem 0; padding:1rem; background:white; border-radius:1rem;">
+      <p style="font-size:0.8rem;">UPI ID: <strong id="qrUpiId">6203240682@okbizaxis</strong></p>
+      <p style="font-size:0.8rem;">Amount: ₹<span id="qrAmount">0</span></p>
+      <div style="margin:1rem auto; width:180px; height:180px; background:#f1f5f9; border-radius:1rem; display:flex; align-items:center; justify-content:center; border:1px dashed #7b2d8e;">
+        <span style="font-size:3rem;">📱</span>
+      </div>
+      <p style="font-size:0.7rem;">Scan this QR code in any UPI app</p>
+    </div>
+    <button id="closeQrModal" class="close-modal-btn">Close</button>
   </div>
 </div>
 
 <a href="#" id="floatWhatsApp" class="whatsapp-float" target="_blank">💬</a>
 
 <script>
-  // ========== FIREBASE CONFIGURATION ==========
+  // Firebase Config
   const firebaseConfig = {
     apiKey: "AIzaSyBDWvXXaHURG6YOanj_WGcE6bdw29RwFwM",
     authDomain: "imorecharge-17fd1.firebaseapp.com",
@@ -473,431 +430,300 @@
     appId: "1:957946439435:web:8c6d5987b5d300561b240e",
     measurementId: "G-XMZ9T2VYCF"
   };
-
   firebase.initializeApp(firebaseConfig);
   const auth = firebase.auth();
 
-  // ========== BUSINESS CONFIGURATION ==========
-  const BUSINESS_UPI = "6203240682@okbizaxis";
-  const WHATSAPP_NUMBER = "916203240682";
+  // CONFIGURATION
+  const UPI_ID = "6203240682@okbizaxis";
+  const MERCHANT_NAME = "Md Shahil";
+  const WHATSAPP_NUMBER = "919472898572";
   const MIN_DIAMONDS = 10;
   const DIAMOND_PRICE = 3;
 
-  // ========== APP STATE ==========
+  // Credit Packs
   let creditPacks = [
-    { qty: 10, price: 30 },
-    { qty: 50, price: 90 },
-    { qty: 100, price: 175 },
-    { qty: 200, price: 350 },
-    { qty: 500, price: 870 },
-    { qty: 1000, price: 1740 },
-    { qty: 2000, price: 3580 },
-    { qty: 5000, price: 8700 }
+    { qty: 10, price: 30 }, { qty: 50, price: 90 }, { qty: 100, price: 175 },
+    { qty: 200, price: 350 }, { qty: 500, price: 870 }, { qty: 1000, price: 1740 },
+    { qty: 2000, price: 3580 }, { qty: 5000, price: 8700 }
   ];
   
-  let orders = [];
-  let settings = {
-    maintenanceMode: false,
-    customTickerMessages: ["🎉 New: 5000 diamonds @ ₹8700", "⚡ Fast manual recharge", "💎 Best IMO rates"]
-  };
-  
-  let currentUser = null;
-  let currentSelectedQty = 100;
-  let currentSelectedPrice = 175;
-  let pendingOrder = null;
-  
-  function saveOrders() { localStorage.setItem('imo_orders', JSON.stringify(orders)); }
-  function loadOrders() { const data = localStorage.getItem('imo_orders'); if(data) orders = JSON.parse(data); else orders = []; }
-  function saveSettings() { localStorage.setItem('imo_settings', JSON.stringify(settings)); }
-  function loadSettings() { const data = localStorage.getItem('imo_settings'); if(data) settings = {...settings, ...JSON.parse(data)}; else saveSettings(); }
-  function saveCreditPacks() { localStorage.setItem('imo_creditpacks', JSON.stringify(creditPacks)); }
-  function loadCreditPacks() { const data = localStorage.getItem('imo_creditpacks'); if(data) creditPacks = JSON.parse(data); else saveCreditPacks(); }
-  
-  loadOrders(); loadSettings(); loadCreditPacks();
-  
-  function showToast(msg, duration=2500) { let t=document.querySelector('.toast'); if(t) t.remove(); const div=document.createElement('div'); div.className='toast'; div.innerText=msg; document.body.appendChild(div); setTimeout(()=>div.remove(),duration); }
-  
-  function getPriceForQuantity(qty) {
+  let currentQty = 100;
+  let currentAmount = 175;
+  let currentOrder = null;
+  let paymentInProgress = false;
+  let returnToPageDetected = false;
+
+  // Helper Functions
+  function showToast(msg) {
+    let t = document.querySelector('.toast');
+    if(t) t.remove();
+    const div = document.createElement('div');
+    div.className = 'toast';
+    div.innerText = msg;
+    document.body.appendChild(div);
+    setTimeout(() => div.remove(), 2500);
+  }
+
+  function getPrice(qty) {
     if (qty < MIN_DIAMONDS) return MIN_DIAMONDS * DIAMOND_PRICE;
-    const exactMatch = creditPacks.find(p => p.qty === qty);
-    if (exactMatch) return exactMatch.price;
-    const sorted = [...creditPacks].sort((a,b) => a.qty - b.qty);
-    let lower = null, higher = null;
-    for (let pack of sorted) {
-      if (pack.qty <= qty) lower = pack;
-      if (pack.qty >= qty && higher === null) higher = pack;
-    }
-    if (lower && higher && lower.qty !== higher.qty) {
-      const ratio = (qty - lower.qty) / (higher.qty - lower.qty);
-      return Math.round(lower.price + (higher.price - lower.price) * ratio);
-    }
-    if (lower) return lower.price;
-    if (higher) return higher.price;
+    const exact = creditPacks.find(p => p.qty === qty);
+    if (exact) return exact.price;
     return qty * DIAMOND_PRICE;
   }
-  
-  // Update button state based on diamond quantity
-  function updateRechargeButtonState() {
-    const rechargeBtn = document.getElementById('pubRechargeBtn');
-    if (!rechargeBtn) return;
-    
-    if (currentSelectedQty < MIN_DIAMONDS) {
-      rechargeBtn.disabled = true;
-      rechargeBtn.style.opacity = '0.6';
-      rechargeBtn.style.cursor = 'not-allowed';
-    } else {
-      rechargeBtn.disabled = false;
-      rechargeBtn.style.opacity = '1';
-      rechargeBtn.style.cursor = 'pointer';
-    }
-  }
-  
-  // Refresh UI based on current qty
-  function refreshUIFromQuantity(qty) {
-    const price = getPriceForQuantity(qty);
-    currentSelectedQty = qty;
-    currentSelectedPrice = price;
-    document.getElementById('pubAmountPreview').innerText = `₹${price}`;
-    // Update grid highlight (remove highlight for custom values)
-    document.querySelectorAll('#pubDiamondGrid .diamond-option').forEach(el => {
-      const elQty = parseInt(el.getAttribute('data-qty'));
-      if(elQty === qty) el.classList.add('selected');
+
+  function updateUI() {
+    currentAmount = getPrice(currentQty);
+    document.getElementById('amountDisplay').innerText = `₹${currentAmount}`;
+    document.getElementById('manualQty').value = currentQty;
+    // Update grid highlight
+    document.querySelectorAll('.diamond-option').forEach(el => {
+      const q = parseInt(el.dataset.qty);
+      if (q === currentQty) el.classList.add('selected');
       else el.classList.remove('selected');
     });
-    // Update button state
-    updateRechargeButtonState();
   }
-  
-  function buildPublicGrid() {
-    const grid = document.getElementById('pubDiamondGrid');
-    if(!grid) return;
+
+  function generateOrderId() {
+    return 'IMO' + Date.now().toString().slice(-8) + Math.floor(Math.random() * 1000);
+  }
+
+  // Build Diamond Grid
+  function buildGrid() {
+    const grid = document.getElementById('diamondGrid');
     grid.innerHTML = '';
     creditPacks.forEach(pack => {
       const div = document.createElement('div');
       div.className = 'diamond-option';
-      if(currentSelectedQty === pack.qty) div.classList.add('selected');
-      div.setAttribute('data-qty', pack.qty);
+      if (currentQty === pack.qty) div.classList.add('selected');
+      div.dataset.qty = pack.qty;
       div.innerHTML = `<div class="diamond-qty"><span class="diamond-icon">💎</span> ${pack.qty}</div><div class="diamond-price">₹${pack.price}</div>`;
-      div.onclick = () => { 
-        currentSelectedQty = pack.qty;
-        currentSelectedPrice = pack.price;
-        refreshUIFromQuantity(pack.qty);
-        // Update manual input without triggering events
-        manualDiamondInput.value = pack.qty;
-      };
+      div.onclick = () => { currentQty = pack.qty; updateUI(); };
       grid.appendChild(div);
     });
   }
-  
-  // Get DOM elements
-  const manualDiamondInput = document.getElementById('manualDiamondInput');
-  const decrementBtn = document.getElementById('decrementDiamond');
-  const incrementBtn = document.getElementById('incrementDiamond');
-  
-  // Manual input event - user types directly (FIXED: allows any number)
-  if (manualDiamondInput) {
-    manualDiamondInput.addEventListener('input', function(e) {
-      let val = parseInt(this.value, 10);
-      if (!isNaN(val)) {
-        // Allow any number, just update UI
-        refreshUIFromQuantity(val);
-      } else if (this.value === '') {
-        // If empty, don't update but keep last valid
-        return;
-      }
-    });
-    
-    manualDiamondInput.addEventListener('blur', function() {
-      let val = parseInt(this.value, 10);
-      if (isNaN(val)) {
-        this.value = MIN_DIAMONDS;
-        refreshUIFromQuantity(MIN_DIAMONDS);
-      } else if (val < MIN_DIAMONDS) {
-        // Show alert and reset to minimum when user tries to leave with less than 10
-        showToast(`❌ Minimum ${MIN_DIAMONDS} diamonds required!`, 2000);
-        this.value = MIN_DIAMONDS;
-        refreshUIFromQuantity(MIN_DIAMONDS);
-      } else {
-        this.value = val;
-        refreshUIFromQuantity(val);
-      }
-    });
+
+  // Generate UPI Deep Link (Safe & Clean)
+  function generateUpiLink(amount, orderId) {
+    // Short transaction note - avoids rejection
+    const shortNote = `IMORecharge${orderId.slice(-6)}`;
+    // Encode all parameters properly
+    const params = new URLSearchParams();
+    params.append('pa', UPI_ID);
+    params.append('pn', MERCHANT_NAME);
+    params.append('am', amount.toString());
+    params.append('cu', 'INR');
+    params.append('tn', shortNote);
+    return `upi://pay?${params.toString()}`;
   }
-  
-  // Decrement button
-  if (decrementBtn) {
-    decrementBtn.addEventListener('click', () => {
-      let currentVal = parseInt(manualDiamondInput.value, 10);
-      if (isNaN(currentVal)) currentVal = MIN_DIAMONDS;
-      let newVal = currentVal - 1;
-      if (newVal < MIN_DIAMONDS) {
-        showToast(`❌ Minimum ${MIN_DIAMONDS} diamonds required!`, 1500);
-        newVal = MIN_DIAMONDS;
-      }
-      manualDiamondInput.value = newVal;
-      refreshUIFromQuantity(newVal);
-    });
-  }
-  
-  // Increment button
-  if (incrementBtn) {
-    incrementBtn.addEventListener('click', () => {
-      let currentVal = parseInt(manualDiamondInput.value, 10);
-      if (isNaN(currentVal)) currentVal = MIN_DIAMONDS;
-      let newVal = currentVal + 1;
-      manualDiamondInput.value = newVal;
-      refreshUIFromQuantity(newVal);
-    });
-  }
-  
-  function renderAdminCreditList() {
-    const container = document.getElementById('creditListAdmin');
-    if(!container) return;
-    container.innerHTML = '';
-    creditPacks.forEach((pack, idx) => {
-      const div = document.createElement('div');
-      div.style.display = 'flex'; div.style.gap = '0.5rem'; div.style.alignItems = 'center'; div.style.background = 'white'; div.style.padding = '0.3rem'; div.style.borderRadius = '1rem';
-      div.innerHTML = `
-        <input type="number" value="${pack.qty}" placeholder="Qty" style="width:80px; margin:0;" id="editQty_${idx}">
-        <input type="number" value="${pack.price}" placeholder="Price" style="width:100px; margin:0;" id="editPrice_${idx}">
-        <button class="save-pack-btn" data-idx="${idx}" style="width:auto; background:#10b981; padding:0.2rem 0.5rem;">💾</button>
-        <button class="del-pack-btn" data-idx="${idx}" style="width:auto; background:#dc2626; padding:0.2rem 0.5rem;">🗑️</button>
-      `;
-      container.appendChild(div);
-    });
-    document.querySelectorAll('.save-pack-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const idx = parseInt(btn.getAttribute('data-idx'));
-        const newQty = parseInt(document.getElementById(`editQty_${idx}`).value);
-        const newPrice = parseFloat(document.getElementById(`editPrice_${idx}`).value);
-        if(!isNaN(newQty) && newQty>0 && !isNaN(newPrice) && newPrice>0) {
-          creditPacks[idx] = { qty: newQty, price: newPrice };
-          creditPacks.sort((a,b)=>a.qty - b.qty);
-          saveCreditPacks();
-          buildPublicGrid();
-          renderAdminCreditList();
-          renderAdminOrders();
-          showToast("Credit pack updated!");
-          refreshUIFromQuantity(currentSelectedQty);
-        } else showToast("Invalid values");
-      });
-    });
-    document.querySelectorAll('.del-pack-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const idx = parseInt(btn.getAttribute('data-idx'));
-        if(creditPacks.length > 1) {
-          creditPacks.splice(idx,1);
-          saveCreditPacks();
-          buildPublicGrid();
-          renderAdminCreditList();
-          showToast("Pack deleted");
-          refreshUIFromQuantity(currentSelectedQty);
-        } else showToast("Cannot delete last pack");
-      });
-    });
-  }
-  
-  document.getElementById('addCreditPackBtn')?.addEventListener('click',()=>{
-    const maxQty = Math.max(...creditPacks.map(p=>p.qty)) + 100;
-    creditPacks.push({ qty: maxQty, price: Math.round(maxQty * (creditPacks[0]?.price/creditPacks[0]?.qty)) });
-    creditPacks.sort((a,b)=>a.qty-b.qty);
-    saveCreditPacks();
-    buildPublicGrid();
-    renderAdminCreditList();
-    showToast("New pack added");
-    refreshUIFromQuantity(currentSelectedQty);
-  });
-  
-  function genOrderId() { return 'IMO-' + Date.now() + '-' + Math.floor(Math.random()*10000); }
-  function createOrder(imoId, qty, amount) { const newOrder={ id:genOrderId(), imoId, diamonds:qty, amount, status:'pending', createdAt:Date.now() }; orders.unshift(newOrder); saveOrders(); renderAdminOrders(); return newOrder; }
-  
-  function renderAdminOrders() {
-    const tbody = document.getElementById('ordersTableBody');
-    if(!tbody) return;
-    tbody.innerHTML = '';
-    orders.forEach(order => {
-      const row = tbody.insertRow();
-      row.insertCell(0).innerText = order.id;
-      row.insertCell(1).innerText = order.imoId;
-      row.insertCell(2).innerHTML = `<span class="diamond-icon">💎</span> ${order.diamonds}`;
-      row.insertCell(3).innerText = `₹${order.amount}`;
-      row.insertCell(4).innerHTML = order.status === 'paid' ? '<span class="status-paid">✓ Paid</span>' : '<span class="status-pending">⏳ Pending</span>';
-      const actionCell = row.insertCell(5);
-      if(order.status !== 'paid') {
-        const btn = document.createElement('button'); btn.innerText = '✅ Mark Paid'; btn.className = 'mark-paid-btn';
-        btn.onclick = () => { order.status='paid'; saveOrders(); renderAdminOrders(); showToast(`Order ${order.id} marked paid`); };
-        actionCell.appendChild(btn);
-      } else actionCell.innerText = 'Completed';
-    });
-  }
-  
-  let tickerInterval;
-  let tickerList = [...settings.customTickerMessages];
-  function updateTickerDisplay() {
-    const tickerDiv = document.getElementById('liveTickerText');
-    if(!tickerDiv) return;
-    if(tickerList.length===0) tickerList=["✨ IMO Recharge Available"];
-    let idx=0;
-    if(tickerInterval) clearInterval(tickerInterval);
-    function rotate() { const msg=tickerList[idx%tickerList.length]; tickerDiv.innerText = msg + "   ⚡   " + msg; idx++; }
-    rotate();
-    tickerInterval = setInterval(rotate, 5000);
-  }
-  function setCustomTicker(str) { let parts=str.split('|').map(s=>s.trim()).filter(s=>s); if(parts.length) tickerList=parts; else tickerList=["🔥 New Diamond Packs!"]; settings.customTickerMessages=tickerList; saveSettings(); updateTickerDisplay(); }
-  
-  function openTutorialModal() { document.getElementById('tutorialModal').classList.add('active'); }
-  window.closeTutorialModal = function() { document.getElementById('tutorialModal').classList.remove('active'); };
-  function openLoginModal() { document.getElementById('loginModal').classList.add('active'); document.getElementById('loginError').innerText = ''; document.getElementById('loginEmail').value = ''; document.getElementById('loginPassword').value = ''; }
-  function closeLoginModal() { document.getElementById('loginModal').classList.remove('active'); }
-  
-  function redirectToWhatsApp(order) {
-    const whatsappMessage = `Hello%2C%20I%20have%20completed%20the%20payment%20for%20IMO%20recharge.%0A%0A📌%20*Order%20Details%3A*%0A🆔%20Order%20ID%3A%20${order.id}%0A👤%20IMO%20ID%3A%20${encodeURIComponent(order.imoId)}%0A💎%20Diamonds%3A%20${order.diamonds}%0A💰%20Amount%3A%20₹${order.amount}%0A%0A✅%20Payment%20done%20via%20UPI%20(${BUSINESS_UPI})%0A📱%20Please%20verify%20and%20recharge%20manually.%0A%0AThank%20you!`;
-    const waLink = `https://wa.me/${WHATSAPP_NUMBER}?text=${whatsappMessage}`;
-    window.open(waLink, '_blank');
-  }
-  
-  let upiRedirectTriggered = false;
-  document.addEventListener('visibilitychange', function() {
-    if (!document.hidden && pendingOrder && !upiRedirectTriggered) {
-      upiRedirectTriggered = true;
-      showToast("✅ Payment completed! Redirecting to WhatsApp...");
-      setTimeout(() => {
-        redirectToWhatsApp(pendingOrder);
-        pendingOrder = null;
-      }, 500);
-    }
-  });
-  
-  auth.onAuthStateChanged((user) => {
-    currentUser = user;
-    const adminBtn = document.getElementById('adminToggleBtn');
-    if(user) {
-      adminBtn.innerText = `👤 Admin`;
-      adminBtn.classList.add('logged-in');
-      document.getElementById('adminPage').style.display = 'block';
-      document.getElementById('publicPage').style.display = 'none';
-      renderAdminCreditList();
-      renderAdminOrders();
-      document.getElementById('adminTickerMsg').value = tickerList.join(' | ');
-      document.getElementById('toggleMaintenanceBtn').innerText = settings.maintenanceMode ? "🛠️ Maintenance: ON" : "🛠️ Maintenance: OFF";
-      closeLoginModal();
-    } else {
-      adminBtn.innerText = `🔐 Admin Login`;
-      adminBtn.classList.remove('logged-in');
-      document.getElementById('adminPage').style.display = 'none';
-      document.getElementById('publicPage').style.display = 'block';
-    }
-  });
-  
-  document.getElementById('loginSubmitBtn')?.addEventListener('click', async () => {
-    const email = document.getElementById('loginEmail').value.trim();
-    const password = document.getElementById('loginPassword').value;
-    const errorDiv = document.getElementById('loginError');
-    if(!email || !password) {
-      errorDiv.innerText = 'Please enter email and password';
-      return;
-    }
-    try {
-      await auth.signInWithEmailAndPassword(email, password);
-    } catch(error) {
-      if(error.code === 'auth/user-not-found') errorDiv.innerText = 'User not found. Create admin in Firebase Console';
-      else if(error.code === 'auth/wrong-password') errorDiv.innerText = 'Wrong password';
-      else if(error.code === 'auth/invalid-email') errorDiv.innerText = 'Invalid email format';
-      else errorDiv.innerText = 'Login failed: ' + error.message;
-    }
-  });
-  
-  document.getElementById('adminLogoutBtn')?.addEventListener('click', async () => { await auth.signOut(); showToast("Logged out successfully"); });
-  document.getElementById('adminToggleBtn').addEventListener('click', () => { if(currentUser) { document.getElementById('adminPage').style.display = 'block'; document.getElementById('publicPage').style.display = 'none'; } else { openLoginModal(); } });
-  document.getElementById('updateTickerBtn')?.addEventListener('click',()=>{ const val=document.getElementById('adminTickerMsg').value; setCustomTicker(val); showToast("Ticker updated"); });
-  document.getElementById('toggleMaintenanceBtn')?.addEventListener('click',()=>{ settings.maintenanceMode=!settings.maintenanceMode; saveSettings(); const btn=document.getElementById('toggleMaintenanceBtn'); btn.innerText = settings.maintenanceMode ? "🛠️ Maintenance: ON" : "🛠️ Maintenance: OFF"; showToast(settings.maintenanceMode?"Maintenance ON":"Maintenance OFF"); if(pubRechargeBtn) pubRechargeBtn.disabled=settings.maintenanceMode; });
-  
-  const pubRechargeBtn = document.getElementById('pubRechargeBtn');
-  async function handleRecharge() {
-    // Check maintenance mode
-    if(settings.maintenanceMode) { showToast("🔧 Maintenance mode active. Recharge disabled."); return; }
-    
-    // Validate IMO ID
-    const imoId = document.getElementById('pubImoId').value.trim();
-    if(!imoId || imoId.length<3) { showToast("❌ Valid IMO ID required"); return; }
-    
-    // Validate diamond quantity - Show alert if less than minimum
-    if(!currentSelectedQty || currentSelectedQty < MIN_DIAMONDS) {
-      showToast(`❌ Minimum ${MIN_DIAMONDS} diamonds required! Current: ${currentSelectedQty || 0} diamonds`, 2500);
+
+  // Create Order and Show Payment Modal
+  async function proceedToPayment() {
+    if (paymentInProgress) {
+      showToast("⏳ Payment already in progress");
       return;
     }
     
-    const amount = currentSelectedPrice;
-    pubRechargeBtn.disabled = true; pubRechargeBtn.innerText = "⏳ Processing...";
+    const imoId = document.getElementById('imoId').value.trim();
+    if (!imoId || imoId.length < 3) {
+      showToast("❌ Please enter valid IMO ID");
+      return;
+    }
+    if (currentQty < MIN_DIAMONDS) {
+      showToast(`❌ Minimum ${MIN_DIAMONDS} diamonds required`);
+      return;
+    }
     
+    const orderId = generateOrderId();
+    currentOrder = {
+      id: orderId,
+      imoId: imoId,
+      diamonds: currentQty,
+      amount: currentAmount,
+      status: 'pending'
+    };
+    
+    // Show order summary in modal
+    document.getElementById('orderSummary').innerHTML = `
+      <p><strong>Order ID:</strong> ${orderId}</p>
+      <p><strong>IMO ID:</strong> ${imoId}</p>
+      <p><strong>💎 Diamonds:</strong> ${currentQty}</p>
+      <p><strong>💰 Amount:</strong> ₹${currentAmount}</p>
+    `;
+    document.getElementById('upiIdDisplay').innerText = UPI_ID;
+    document.getElementById('qrAmount').innerText = currentAmount;
+    document.getElementById('qrUpiId').innerText = UPI_ID;
+    
+    document.getElementById('paymentModal').classList.add('active');
+  }
+  
+  // Open UPI App
+  function openUpiApp() {
+    if (!currentOrder) return;
+    if (paymentInProgress) return;
+    
+    paymentInProgress = true;
+    returnToPageDetected = false;
+    
+    const upiLink = generateUpiLink(currentOrder.amount, currentOrder.id);
+    showToast("Opening UPI app...");
+    
+    // Store payment start time to detect return
+    sessionStorage.setItem('upiPaymentStart', Date.now().toString());
+    sessionStorage.setItem('pendingOrderId', currentOrder.id);
+    
+    // Try to open UPI app
+    window.location.href = upiLink;
+    
+    // Fallback after 1.5 seconds if app doesn't open
     setTimeout(() => {
-      const order = createOrder(imoId, currentSelectedQty, amount);
-      pendingOrder = order;
-      upiRedirectTriggered = false;
-      pubRechargeBtn.disabled = false; pubRechargeBtn.innerText = "🚀 Recharge Now";
-      
-      document.getElementById('publicPage').innerHTML = `
-        <div class="glass-card">
-          <div style="background:#f8fafc; border-radius:1.5rem; padding:1.2rem;">
-            <h3>🧾 Order Summary</h3>
-            <p><strong>Order ID:</strong> ${order.id}</p>
-            <p><strong>IMO ID:</strong> ${order.imoId}</p>
-            <p><strong><span class="diamond-icon">💎</span> Diamonds:</strong> ${order.diamonds}</p>
-            <p><strong>💰 Amount:</strong> ₹${order.amount}</p>
-            <div style="background:#eef2ff; padding:0.8rem; border-radius:1rem; margin-top:0.5rem;">📢 <strong>Order received!</strong> Please complete payment.</div>
-          </div>
-          <div style="background:#fff; border-radius:1.5rem; padding:1rem; margin:1rem 0; text-align:center;">
-            <p>📲 Pay via UPI: <strong>${BUSINESS_UPI}</strong></p>
-            <button id="copyUpi" class="btn-primary" style="background:#eef2ff; color:#000;">📋 Copy UPI ID</button>
-            <div style="margin:0.5rem auto; width:100px; background:#f1f5f9; border-radius:1rem; padding:0.5rem;">📱 Scan QR to Pay</div>
-          </div>
-          <div class="flex-row" style="gap:0.5rem;">
-            <button id="payNowBtn" class="btn-primary" style="background:#25D366;">💸 Pay Now (UPI)</button>
-          </div>
-          <div class="countdown-timer" id="redirectInfo">
-            ⏳ After payment, return to this page to auto-confirm
-          </div>
-          <button id="backHomeBtn" class="btn-secondary" style="margin-top:0.5rem;">← Back to Home</button>
-        </div>
-      `;
-      
-      document.getElementById('copyUpi')?.addEventListener('click', () => {
-        navigator.clipboard.writeText(BUSINESS_UPI);
-        showToast("UPI ID Copied!");
-      });
-      
-      document.getElementById('payNowBtn')?.addEventListener('click', () => {
-        showToast("Opening UPI app... Complete payment then come back here");
-        const upiDeepLink = `upi://pay?pa=${encodeURIComponent(BUSINESS_UPI)}&pn=IMO%20Recharge&am=${order.amount}&cu=INR&tn=Payment%20for%20IMO%20recharge%20Order%20${order.id}`;
-        window.location.href = upiDeepLink;
-        const infoDiv = document.getElementById('redirectInfo');
-        if(infoDiv) {
-          infoDiv.innerHTML = "✅ Payment initiated! After completing payment in UPI app,<br>📱 <strong>return to this page</strong> to auto-confirm on WhatsApp";
-          infoDiv.style.background = "#e8f5e9";
-          infoDiv.style.color = "#2e7d32";
-        }
-      });
-      
-      document.getElementById('backHomeBtn')?.addEventListener('click', () => {
-        pendingOrder = null;
-        location.reload();
-      });
+      if (paymentInProgress) {
+        showToast("⚠️ UPI app not found. Please use QR code or copy UPI ID");
+        paymentInProgress = false;
+      }
     }, 1500);
   }
-  if(pubRechargeBtn) pubRechargeBtn.addEventListener('click', handleRecharge);
   
-  document.getElementById('helpTutorialBtn')?.addEventListener('click', openTutorialModal);
-  document.getElementById('pubHelpBtn')?.addEventListener('click',()=>{ window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=Hello%20I%20need%20help%20with%20IMO%20recharge`,'_blank'); });
-  document.getElementById('floatWhatsApp')?.addEventListener('click',(e)=>{ e.preventDefault(); window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=Hello%20I%20need%20help%20with%20IMO%20recharge`,'_blank'); });
-  document.getElementById('tutorialModal')?.addEventListener('click', function(e) { if(e.target === this) closeTutorialModal(); });
-  document.getElementById('loginModal')?.addEventListener('click', function(e) { if(e.target === this) closeLoginModal(); });
+  // Detect return from UPI app
+  function checkPaymentReturn() {
+    const startTime = sessionStorage.getItem('upiPaymentStart');
+    const pendingOrderId = sessionStorage.getItem('pendingOrderId');
+    
+    if (startTime && pendingOrderId && !returnToPageDetected && paymentInProgress) {
+      const elapsed = Date.now() - parseInt(startTime);
+      // If returned within 60 seconds, likely completed payment
+      if (elapsed > 2000 && elapsed < 60000) {
+        returnToPageDetected = true;
+        paymentInProgress = false;
+        sessionStorage.removeItem('upiPaymentStart');
+        sessionStorage.removeItem('pendingOrderId');
+        
+        showToast("✅ Payment initiated! Redirecting to WhatsApp...");
+        setTimeout(() => {
+          redirectToWhatsApp();
+        }, 800);
+      }
+    }
+  }
   
-  buildPublicGrid();
-  updateTickerDisplay();
-  manualDiamondInput.value = 100;
-  refreshUIFromQuantity(100);
-  updateRechargeButtonState();
-  if(pubRechargeBtn) pubRechargeBtn.disabled = settings.maintenanceMode;
+  // Redirect to WhatsApp with order details
+  function redirectToWhatsApp() {
+    if (!currentOrder) return;
+    const msg = `Hello%2C%20I%20have%20completed%20payment%20for%20IMO%20recharge%0A%0A📌%20Order%20ID%3A%20${currentOrder.id}%0A👤%20IMO%20ID%3A%20${encodeURIComponent(currentOrder.imoId)}%0A💎%20Diamonds%3A%20${currentOrder.diamonds}%0A💰%20Amount%3A%20₹${currentOrder.amount}%0A%0APayment%20done%20via%20UPI%20(${UPI_ID})%0APlease%20verify%20and%20recharge.`;
+    window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${msg}`, '_blank');
+    // Close modal after redirect
+    document.getElementById('paymentModal').classList.remove('active');
+  }
+  
+  // WhatsApp confirmation button
+  function confirmViaWhatsApp() {
+    if (!currentOrder) return;
+    redirectToWhatsApp();
+  }
+  
+  // Copy UPI ID
+  async function copyUpiId() {
+    try {
+      await navigator.clipboard.writeText(UPI_ID);
+      showToast("✅ UPI ID copied!");
+    } catch {
+      showToast("⚠️ Could not copy");
+    }
+  }
+  
+  // Show QR Modal
+  function showQrModal() {
+    document.getElementById('qrModal').classList.add('active');
+    document.getElementById('paymentModal').classList.remove('active');
+  }
+  
+  // Admin Auth State
+  let currentAdmin = null;
+  auth.onAuthStateChanged((user) => {
+    currentAdmin = user;
+    const adminBtn = document.getElementById('adminToggleBtn');
+    if (adminBtn) {
+      if (user) adminBtn.innerText = `👤 Admin`;
+      else adminBtn.innerText = `🔐 Admin`;
+    }
+  });
+  
+  // Event Listeners
+  document.getElementById('rechargeBtn').addEventListener('click', proceedToPayment);
+  document.getElementById('payWithUpiBtn').addEventListener('click', openUpiApp);
+  document.getElementById('qrFallbackBtn').addEventListener('click', showQrModal);
+  document.getElementById('whatsappConfirmBtn').addEventListener('click', confirmViaWhatsApp);
+  document.getElementById('copyUpiBtn').addEventListener('click', copyUpiId);
+  document.getElementById('closePaymentModal').addEventListener('click', () => {
+    document.getElementById('paymentModal').classList.remove('active');
+    paymentInProgress = false;
+  });
+  document.getElementById('closeQrModal').addEventListener('click', () => {
+    document.getElementById('qrModal').classList.remove('active');
+  });
+  
+  // Manual quantity controls
+  const manualQty = document.getElementById('manualQty');
+  document.getElementById('decrementBtn').addEventListener('click', () => {
+    let val = currentQty - 1;
+    if (val < MIN_DIAMONDS) {
+      showToast(`Minimum ${MIN_DIAMONDS} diamonds required`);
+      val = MIN_DIAMONDS;
+    }
+    currentQty = val;
+    updateUI();
+  });
+  document.getElementById('incrementBtn').addEventListener('click', () => {
+    currentQty = currentQty + 1;
+    updateUI();
+  });
+  manualQty.addEventListener('change', () => {
+    let val = parseInt(manualQty.value);
+    if (isNaN(val)) val = MIN_DIAMONDS;
+    if (val < MIN_DIAMONDS) {
+      showToast(`Minimum ${MIN_DIAMONDS} diamonds required`);
+      val = MIN_DIAMONDS;
+    }
+    currentQty = val;
+    updateUI();
+  });
+  
+  // Help & Tutorial
+  function openTutorial() { document.getElementById('tutorialModal').classList.add('active'); }
+  function closeTutorial() { document.getElementById('tutorialModal').classList.remove('active'); }
+  document.getElementById('helpBtn').addEventListener('click', openTutorial);
+  window.closeTutorial = closeTutorial;
+  document.getElementById('tutorialModal').addEventListener('click', (e) => { if (e.target === e.currentTarget) closeTutorial(); });
+  document.getElementById('paymentModal').addEventListener('click', (e) => { if (e.target === e.currentTarget && !paymentInProgress) document.getElementById('paymentModal').classList.remove('active'); });
+  document.getElementById('qrModal').addEventListener('click', (e) => { if (e.target === e.currentTarget) document.getElementById('qrModal').classList.remove('active'); });
+  
+  // WhatsApp Help
+  function openWhatsAppHelp() {
+    window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=Hello%20I%20need%20help%20with%20IMO%20recharge`, '_blank');
+  }
+  document.getElementById('helpWhatsAppBtn').addEventListener('click', openWhatsAppHelp);
+  document.getElementById('floatWhatsApp').addEventListener('click', (e) => { e.preventDefault(); openWhatsAppHelp(); });
+  
+  // Detect return from UPI app (visibility change)
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden && paymentInProgress) {
+      checkPaymentReturn();
+    }
+  });
+  
+  // Fake Ticker
+  const tickerMessages = ["🔒 Secure UPI Payment", "⚡ Instant Recharge", "💎 Best Diamond Rates", "📱 Pay with GPay/PhonePe"];
+  let tickerIdx = 0;
+  setInterval(() => {
+    const ticker = document.getElementById('tickerText');
+    if (ticker) {
+      tickerIdx = (tickerIdx + 1) % tickerMessages.length;
+      ticker.innerText = tickerMessages[tickerIdx] + "   ⚡   " + tickerMessages[tickerIdx];
+    }
+  }, 4000);
+  
+  // Initialize
+  buildGrid();
+  updateUI();
 </script>
 </body>
 </html>
