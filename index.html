@@ -171,15 +171,21 @@
 <!-- Tutorial Modal -->
 <div id="tutorialModal" class="modal-overlay">
   <div class="modal-content">
-    <h3>📱 How to find IMO Profile ID?</h3>
-    <div style="margin:1rem 0; padding:1rem; background:#f8fafc; border-radius:1rem; text-align:left;">
-      <p>1️⃣ Open IMO app</p>
-      <p>2️⃣ Tap on Profile tab at bottom</p>
-      <p>3️⃣ Tap on your profile picture/name</p>
-      <p>4️⃣ Your IMO ID is shown below your name (it's a number)</p>
-      <p>5️⃣ Copy and paste it here</p>
+    <h3>📱 How to find your IMO Profile ID?</h3>
+    <p>Watch this short tutorial 👇</p>
+    <div class="video-container" style="position:relative; width:100%; padding-bottom:56.25%; margin:1rem 0; background:#000; border-radius:1rem; overflow:hidden;">
+      <iframe 
+        style="position:absolute; top:0; left:0; width:100%; height:100%; border:none;"
+        src="https://www.youtube.com/embed/0b7LXsb76Kg" 
+        title="How to find IMO Profile ID Tutorial"
+        frameborder="0"
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+        referrerpolicy="strict-origin-when-cross-origin"
+        allowfullscreen>
+      </iframe>
     </div>
-    <button class="btn-primary" onclick="closeTutorial()">Got it!</button>
+    <p style="font-size:0.75rem; color:#6c757d;">Step 1: Open IMO app → Profile → Tap on profile picture<br>Step 2: Your IMO ID is shown below your name (Copy it)</p>
+    <button class="close-modal-btn" onclick="closeTutorial()">Got it! ✨</button>
   </div>
 </div>
 
@@ -599,13 +605,24 @@
   }
   window.showQrMethod = showQrMethod;
   
-  function openTutorial() { document.getElementById('tutorialModal').classList.add('active'); }
-  function closeTutorial() { document.getElementById('tutorialModal').classList.remove('active'); }
+  // Tutorial Functions
+  function openTutorial() { 
+    document.getElementById('tutorialModal').classList.add('active'); 
+  }
+  function closeTutorial() { 
+    document.getElementById('tutorialModal').classList.remove('active'); 
+  }
   document.getElementById('helpBtn').addEventListener('click', openTutorial);
   window.closeTutorial = closeTutorial;
-  document.getElementById('tutorialModal').addEventListener('click', (e) => { if (e.target === e.currentTarget) closeTutorial(); });
-  document.getElementById('paymentModal').addEventListener('click', (e) => { if (e.target === e.currentTarget && !paymentInitiated) document.getElementById('paymentModal').classList.remove('active'); });
-  document.getElementById('qrModal').addEventListener('click', (e) => { if (e.target === e.currentTarget) document.getElementById('qrModal').classList.remove('active'); });
+  document.getElementById('tutorialModal').addEventListener('click', (e) => { 
+    if (e.target === e.currentTarget) closeTutorial(); 
+  });
+  document.getElementById('paymentModal').addEventListener('click', (e) => { 
+    if (e.target === e.currentTarget && !paymentInitiated) document.getElementById('paymentModal').classList.remove('active'); 
+  });
+  document.getElementById('qrModal').addEventListener('click', (e) => { 
+    if (e.target === e.currentTarget) document.getElementById('qrModal').classList.remove('active'); 
+  });
   
   function openWhatsAppHelp() {
     window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=Hello%20I%20need%20help%20with%20IMO%20recharge`, '_blank');
