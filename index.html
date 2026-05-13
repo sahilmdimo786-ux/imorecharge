@@ -84,6 +84,22 @@
     .setting-row { display: flex; gap: 0.5rem; align-items: center; margin: 0.5rem 0; }
     .setting-row input { flex: 2; margin: 0; }
     .setting-row button { flex: 1; margin: 0; }
+    .maintenance-alert {
+      background-color: #ffebee;
+      color: #c62828;
+      text-align: center;
+      padding: 0.75rem;
+      border-radius: 1rem;
+      margin-bottom: 1rem;
+      font-weight: bold;
+      border: 1px solid #ffcdd2;
+      animation: pulse 1.5s infinite;
+    }
+    @keyframes pulse {
+      0% { opacity: 0.8; }
+      50% { opacity: 1; background-color: #ffcdd2; }
+      100% { opacity: 0.8; }
+    }
     @media (max-width: 500px) { .diamond-grid { grid-template-columns: repeat(3, 1fr); } .glass-card { padding: 1.2rem; } .stepper-btn { width: 38px; height: 38px; } .manual-diamond-input { width: 90px; } }
   </style>
 </head>
@@ -92,6 +108,11 @@
 <div class="admin-badge" id="adminToggleBtn">🔐 Admin Panel</div>
 
 <div class="glass-card">
+  <!-- Maintenance Alert Banner -->
+  <div id="maintenanceAlert" style="display: none;" class="maintenance-alert">
+    ⚠️ The Web App temporarily is in maintenance mode ⚠️
+  </div>
+
   <div class="hero"><h1><span class="diamond-icon">💎</span> IMO Recharge</h1><p>Smart UPI • Auto WhatsApp Confirm</p></div>
   
   <div class="input-field">
@@ -127,7 +148,10 @@
   
   <div class="flex-row" style="justify-content:space-between; background:#f1f5f9; border-radius:1.5rem; padding:0.7rem;">
     <span>❓ Need help?</span>
-    <button id="helpWhatsAppBtn" style="width:auto; background:#25D366; color:white; border:none; padding:0.3rem 1rem;">💬 WhatsApp</button>
+    <div style="display: flex; gap: 0.5rem;">
+      <button id="helpWhatsAppBtn" style="width:auto; background:#25D366; color:white; border:none; padding:0.3rem 1rem;">💬 WhatsApp</button>
+      <button id="joinImoBtn" style="width:auto; background:#7b2d8e; color:white; border:none; padding:0.3rem 1rem;">👥 Join Us On Imo</button>
+    </div>
   </div>
   
   <footer style="font-size:0.6rem; text-align:center; margin-top:1rem;">⚠️ After UPI payment, you'll be auto-redirected to WhatsApp</footer>
@@ -211,6 +235,15 @@
         </div>
         <small>Current UPI ID will be updated across all payment options</small>
       </div>
+
+      <div style="background:#eef2ff; padding:0.8rem; border-radius:1rem; margin-bottom:1rem;">
+        <h4>💰 Price per Diamond (Base Rate)</h4>
+        <div class="setting-row">
+          <input type="number" id="adminPricePerDiamond" step="0.5" placeholder="Price per diamond" value="3">
+          <button id="updatePriceBtn" class="btn-primary" style="width:auto; padding:0.5rem 1rem;">Update Rate</button>
+        </div>
+        <small>Current rate: ₹<span id="currentPriceDisplay">3</span> per diamond. Bulk prices will auto-adjust.</small>
+      </div>
       
       <h4>📋 Orders</h4>
       <div style="overflow-x:auto; max-height: 300px; overflow-y: auto;">
@@ -254,19 +287,31 @@
   const MERCHANT_NAME = "Niraj Communication";
   const WHATSAPP_NUMBER = "919472898572";
   const MIN_DIAMONDS = 10;
+  
+  // Dynamic price per diamond (Admin editable)
+  let BASE_PRICE_PER_DIAMOND = 3; // Default ₹3 per diamond
 
-  // ========== EXACT DIAMOND RATES FROM SCREENSHOT ==========
-  // 10→30, 50→90, 100→175, 200→350, 500→870, 1000→1740, 2000→3580, 5000→8700
-  let creditPacks = [
-    { qty: 10, price: 30 },
-    { qty: 50, price: 90 },
-    { qty: 100, price: 175 },
-    { qty: 200, price: 350 },
-    { qty: 500, price: 870 },
-    { qty: 1000, price: 1740 },
-    { qty: 2000, price: 3580 },
-    { qty: 5000, price: 8700 }
+  // Base credit packs with prices (these will be recalculated based on base price)
+  let creditPacksBase = [
+    { qty: 10, multiplier: 1.0 },   // Will be base_price * 10 * 1.0
+    { qty: 50, multiplier: 0.9 },    // 10% less than per-piece
+    { qty: 100, multiplier: 0.85 },  // 15% less
+    { qty: 200, multiplier: 0.8 },   // 20% less
+    { qty: 500, multiplier: 0.78 },  // 22% less
+    { qty: 1000, multiplier: 0.75 }, // 25% less
+    { qty: 2000, multiplier: 0.72 }, // 28% less
+    { qty: 5000, multiplier: 0.7 }   // 30% less
   ];
+  
+  let creditPacks = [];
+
+  function generateCreditPacks() {
+    creditPacks = [];
+    for (let pack of creditPacksBase) {
+      let calculatedPrice = Math.round(BASE_PRICE_PER_DIAMOND * pack.qty * pack.multiplier);
+      creditPacks.push({ qty: pack.qty, price: calculatedPrice });
+    }
+  }
   
   // Price calculation function - uses interpolation for custom quantities
   function getPriceForQuantity(qty) {
@@ -289,12 +334,12 @@
     }
     if (lower) return lower.price;
     if (higher) return higher.price;
-    // Fallback: base rate from smallest pack (10 diamonds for ₹30 = ₹3 per diamond)
-    return qty * 3;
+    // Fallback: base rate from smallest pack
+    return qty * BASE_PRICE_PER_DIAMOND;
   }
   
   let currentQty = 100;
-  let currentAmount = 175;  // Default for 100 diamonds from screenshot
+  let currentAmount = 0;
   let currentOrder = null;
   let paymentInitiated = false;
   let paymentCompleted = false;
@@ -337,6 +382,38 @@
     updateProceedButtonState();
   }
 
+  function updateMaintenanceUI() {
+    const maintenanceAlert = document.getElementById('maintenanceAlert');
+    const allInteractiveElements = ['#rechargeBtn', '#helpBtn', '#decrementBtn', '#incrementBtn', '#manualQty', '#helpWhatsAppBtn', '#joinImoBtn', '#floatWhatsApp', '#adminToggleBtn'];
+    
+    if (settings.maintenanceMode) {
+      maintenanceAlert.style.display = 'block';
+      // Disable main interactive elements
+      document.getElementById('rechargeBtn').disabled = true;
+      document.getElementById('manualQty').disabled = true;
+      document.getElementById('decrementBtn').disabled = true;
+      document.getElementById('incrementBtn').disabled = true;
+      document.getElementById('helpBtn').disabled = true;
+      // Add a class to visually indicate disabled state
+      document.querySelectorAll('.diamond-option').forEach(el => {
+        el.style.pointerEvents = 'none';
+        el.style.opacity = '0.5';
+      });
+    } else {
+      maintenanceAlert.style.display = 'none';
+      document.getElementById('rechargeBtn').disabled = false;
+      document.getElementById('manualQty').disabled = false;
+      document.getElementById('decrementBtn').disabled = false;
+      document.getElementById('incrementBtn').disabled = false;
+      document.getElementById('helpBtn').disabled = false;
+      document.querySelectorAll('.diamond-option').forEach(el => {
+        el.style.pointerEvents = 'auto';
+        el.style.opacity = '1';
+      });
+      updateProceedButtonState(); // Re-evaluate proceed button state
+    }
+  }
+
   function generateOrderId() {
     return 'IMO' + Date.now().toString().slice(-8) + Math.floor(Math.random() * 1000);
   }
@@ -351,6 +428,7 @@
       div.dataset.qty = pack.qty;
       div.innerHTML = `<div class="diamond-qty"><span class="diamond-icon">💎</span> ${pack.qty}</div><div class="diamond-price">₹${pack.price}</div>`;
       div.onclick = () => { 
+        if (settings.maintenanceMode) return;
         currentQty = pack.qty; 
         updateUI();
         document.getElementById('manualQty').value = pack.qty;
@@ -566,16 +644,20 @@
   manualQtyInput.addEventListener('input', updateFromManualInput);
   manualQtyInput.addEventListener('change', updateFromManualInput);
   
+  // Updated increment/decrement: DOUBLE the value instead of +1/-1
   document.getElementById('decrementBtn').addEventListener('click', () => {
-    let val = currentQty - 1;
+    let val = currentQty;
+    if (val <= 1) val = 1;
+    else val = Math.floor(val / 2);
     if (val < 1) val = 1;
     manualQtyInput.value = val;
     updateFromManualInput();
   });
   
   document.getElementById('incrementBtn').addEventListener('click', () => {
-    let val = currentQty + 1;
-    manualQtyInput.value = val;
+    let val = currentQty;
+    let newVal = val * 2;
+    manualQtyInput.value = newVal;
     updateFromManualInput();
   });
   
@@ -629,6 +711,11 @@
   }
   document.getElementById('helpWhatsAppBtn').addEventListener('click', openWhatsAppHelp);
   document.getElementById('floatWhatsApp').addEventListener('click', (e) => { e.preventDefault(); openWhatsAppHelp(); });
+  
+  // Join Imo Button
+  document.getElementById('joinImoBtn').addEventListener('click', () => {
+    window.open('https://s.imoim.net/8czyd5', '_blank');
+  });
   
   document.addEventListener('visibilitychange', () => {
     if (!document.hidden && paymentInitiated) {
@@ -694,6 +781,22 @@
   const savedUpi = localStorage.getItem('imo_upi_id');
   if (savedUpi) CURRENT_UPI_ID = savedUpi;
   
+  const savedBasePrice = localStorage.getItem('imo_base_price');
+  if (savedBasePrice) {
+    BASE_PRICE_PER_DIAMOND = parseFloat(savedBasePrice);
+  }
+  generateCreditPacks();
+  
+  function updateBasePrice(newPrice) {
+    BASE_PRICE_PER_DIAMOND = newPrice;
+    localStorage.setItem('imo_base_price', BASE_PRICE_PER_DIAMOND);
+    generateCreditPacks();
+    buildGrid();
+    updateUI();
+    document.getElementById('currentPriceDisplay').innerText = BASE_PRICE_PER_DIAMOND;
+    showToast(`✅ Price per diamond updated to ₹${BASE_PRICE_PER_DIAMOND}`);
+  }
+  
   function updateUpiId(newUpiId) {
     if (!newUpiId || newUpiId.trim() === '') {
       showToast("❌ Invalid UPI ID");
@@ -730,6 +833,8 @@
       renderAdminOrders();
       document.getElementById('adminTickerMsg').value = tickerMessages.join(' | ');
       document.getElementById('adminUpiId').value = CURRENT_UPI_ID;
+      document.getElementById('adminPricePerDiamond').value = BASE_PRICE_PER_DIAMOND;
+      document.getElementById('currentPriceDisplay').innerText = BASE_PRICE_PER_DIAMOND;
       errorDiv.innerText = '';
       document.getElementById('adminToggleBtn').classList.add('logged-in');
     } catch (err) {
@@ -751,6 +856,15 @@
     updateUpiId(newUpi);
   });
   
+  document.getElementById('updatePriceBtn').addEventListener('click', () => {
+    const newPrice = parseFloat(document.getElementById('adminPricePerDiamond').value);
+    if (!isNaN(newPrice) && newPrice > 0) {
+      updateBasePrice(newPrice);
+    } else {
+      showToast("❌ Invalid price value");
+    }
+  });
+  
   document.getElementById('updateTickerBtn').addEventListener('click', () => {
     const msg = document.getElementById('adminTickerMsg').value;
     if (msg) {
@@ -763,6 +877,8 @@
   
   document.getElementById('toggleMaintenanceBtn').addEventListener('click', () => {
     settings.maintenanceMode = !settings.maintenanceMode;
+    localStorage.setItem('imo_maintenance_mode', settings.maintenanceMode);
+    updateMaintenanceUI();
     showToast(settings.maintenanceMode ? "Maintenance mode ON" : "Maintenance mode OFF");
   });
   
@@ -773,6 +889,8 @@
       adminPanelSection.style.display = 'block';
       renderAdminOrders();
       document.getElementById('adminUpiId').value = CURRENT_UPI_ID;
+      document.getElementById('adminPricePerDiamond').value = BASE_PRICE_PER_DIAMOND;
+      document.getElementById('currentPriceDisplay').innerText = BASE_PRICE_PER_DIAMOND;
       document.getElementById('adminToggleBtn').classList.add('logged-in');
     } else {
       adminLoginSection.style.display = 'block';
@@ -785,11 +903,18 @@
     if (e.target === adminModal) adminModal.classList.remove('active');
   });
   
+  // Load maintenance mode from storage
+  const savedMaintenance = localStorage.getItem('imo_maintenance_mode');
+  if (savedMaintenance !== null) {
+    settings.maintenanceMode = savedMaintenance === 'true';
+  }
+  updateMaintenanceUI();
+  
   let tickerMessages = ["✨ UPI Payment • Auto WhatsApp", "💎 Best Diamond Rates", "⚡ Instant Recharge"];
   let tickerIdx = 0;
   setInterval(() => {
     const ticker = document.getElementById('tickerText');
-    if (ticker && tickerMessages.length) {
+    if (ticker && tickerMessages.length && !settings.maintenanceMode) {
       tickerIdx = (tickerIdx + 1) % tickerMessages.length;
       ticker.innerText = tickerMessages[tickerIdx] + "   ⚡   " + tickerMessages[tickerIdx];
     }
