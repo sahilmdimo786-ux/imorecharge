@@ -242,7 +242,7 @@
           <input type="number" id="adminPricePerDiamond" step="0.5" placeholder="Price per diamond" value="3">
           <button id="updatePriceBtn" class="btn-primary" style="width:auto; padding:0.5rem 1rem;">Update Rate</button>
         </div>
-        <small>Current rate: ₹<span id="currentPriceDisplay">3</span> per diamond. Bulk prices will auto-adjust.</small>
+        <small>Current rate: ₹<span id="currentPriceDisplay">3</span> per diamond. Bulk prices scale proportionally.</small>
       </div>
       
       <h4>📋 Orders</h4>
@@ -291,16 +291,31 @@
   // Dynamic price per diamond (Admin editable)
   let BASE_PRICE_PER_DIAMOND = 3; // Default ₹3 per diamond
 
-  // Base credit packs with prices (these will be recalculated based on base price)
+  // ========== EXACT PRICING LOGIC FROM SCREENSHOT ==========
+  // Reference prices from screenshot (when BASE_PRICE = 3)
+  // 10 → 30, 50 → 90, 100 → 175, 200 → 350, 500 → 870, 1000 → 1740, 2000 → 3580, 5000 → 8700
+  // These are the exact coefficients that preserve the pricing structure
+  const PRICE_COEFFICIENTS = {
+    10: 10,      // 10 diamonds = base_price * 10
+    50: 30,      // 50 diamonds = base_price * 30
+    100: 58.33,  // 100 diamonds = base_price * 58.33 (175/3 ≈ 58.33)
+    200: 116.67, // 200 diamonds = base_price * 116.67 (350/3 ≈ 116.67)
+    500: 290,    // 500 diamonds = base_price * 290 (870/3 = 290)
+    1000: 580,   // 1000 diamonds = base_price * 580 (1740/3 = 580)
+    2000: 1193.33, // 2000 diamonds = base_price * 1193.33 (3580/3 ≈ 1193.33)
+    5000: 2900    // 5000 diamonds = base_price * 2900 (8700/3 = 2900)
+  };
+  
+  // Base credit packs with multipliers that preserve the exact screenshot pricing relationship
   let creditPacksBase = [
-    { qty: 10, multiplier: 1.0 },   // Will be base_price * 10 * 1.0
-    { qty: 50, multiplier: 0.9 },    // 10% less than per-piece
-    { qty: 100, multiplier: 0.85 },  // 15% less
-    { qty: 200, multiplier: 0.8 },   // 20% less
-    { qty: 500, multiplier: 0.78 },  // 22% less
-    { qty: 1000, multiplier: 0.75 }, // 25% less
-    { qty: 2000, multiplier: 0.72 }, // 28% less
-    { qty: 5000, multiplier: 0.7 }   // 30% less
+    { qty: 10, multiplier: 10 },      // 3*10 = 30
+    { qty: 50, multiplier: 30 },      // 3*30 = 90
+    { qty: 100, multiplier: 58.333 }, // 3*58.333 = 175
+    { qty: 200, multiplier: 116.667 },// 3*116.667 = 350
+    { qty: 500, multiplier: 290 },    // 3*290 = 870
+    { qty: 1000, multiplier: 580 },   // 3*580 = 1740
+    { qty: 2000, multiplier: 1193.333 }, // 3*1193.333 = 3580
+    { qty: 5000, multiplier: 2900 }   // 3*2900 = 8700
   ];
   
   let creditPacks = [];
@@ -308,34 +323,88 @@
   function generateCreditPacks() {
     creditPacks = [];
     for (let pack of creditPacksBase) {
-      let calculatedPrice = Math.round(BASE_PRICE_PER_DIAMOND * pack.qty * pack.multiplier);
+      let calculatedPrice = Math.round(BASE_PRICE_PER_DIAMOND * pack.multiplier);
       creditPacks.push({ qty: pack.qty, price: calculatedPrice });
     }
   }
   
   // Price calculation function - uses interpolation for custom quantities
+  // Maintains the proportional pricing structure from the screenshot
   function getPriceForQuantity(qty) {
     if (qty <= 0) return 0;
+    
     // Check for exact match in credit packs
     const exactMatch = creditPacks.find(p => p.qty === qty);
     if (exactMatch) return exactMatch.price;
     
-    // Find surrounding packs for interpolation
-    const sorted = [...creditPacks].sort((a,b) => a.qty - b.qty);
-    let lower = null, higher = null;
-    for (let pack of sorted) {
-      if (pack.qty <= qty) lower = pack;
-      if (pack.qty >= qty && higher === null) higher = pack;
+    // For custom quantities, find the appropriate multiplier based on the reference prices
+    // This preserves the same discount structure as the original screenshot pricing
+    if (qty >= 5000) {
+      // Beyond 5000, use the 5000 rate per diamond
+      const baseMultiplier = creditPacksBase.find(p => p.qty === 5000).multiplier;
+      return Math.round(BASE_PRICE_PER_DIAMOND * baseMultiplier * (qty / 5000));
     }
-    if (lower && higher && lower.qty !== higher.qty) {
-      // Linear interpolation between two known packs
-      const ratio = (qty - lower.qty) / (higher.qty - lower.qty);
-      return Math.round(lower.price + (higher.price - lower.price) * ratio);
+    
+    if (qty >= 2000) {
+      const lowerMultiplier = creditPacksBase.find(p => p.qty === 2000).multiplier;
+      const higherMultiplier = creditPacksBase.find(p => p.qty === 5000).multiplier;
+      const ratio = (qty - 2000) / (5000 - 2000);
+      const multiplier = lowerMultiplier + (higherMultiplier - lowerMultiplier) * ratio;
+      return Math.round(BASE_PRICE_PER_DIAMOND * multiplier);
     }
-    if (lower) return lower.price;
-    if (higher) return higher.price;
-    // Fallback: base rate from smallest pack
-    return qty * BASE_PRICE_PER_DIAMOND;
+    
+    if (qty >= 1000) {
+      const lowerMultiplier = creditPacksBase.find(p => p.qty === 1000).multiplier;
+      const higherMultiplier = creditPacksBase.find(p => p.qty === 2000).multiplier;
+      const ratio = (qty - 1000) / (2000 - 1000);
+      const multiplier = lowerMultiplier + (higherMultiplier - lowerMultiplier) * ratio;
+      return Math.round(BASE_PRICE_PER_DIAMOND * multiplier);
+    }
+    
+    if (qty >= 500) {
+      const lowerMultiplier = creditPacksBase.find(p => p.qty === 500).multiplier;
+      const higherMultiplier = creditPacksBase.find(p => p.qty === 1000).multiplier;
+      const ratio = (qty - 500) / (1000 - 500);
+      const multiplier = lowerMultiplier + (higherMultiplier - lowerMultiplier) * ratio;
+      return Math.round(BASE_PRICE_PER_DIAMOND * multiplier);
+    }
+    
+    if (qty >= 200) {
+      const lowerMultiplier = creditPacksBase.find(p => p.qty === 200).multiplier;
+      const higherMultiplier = creditPacksBase.find(p => p.qty === 500).multiplier;
+      const ratio = (qty - 200) / (500 - 200);
+      const multiplier = lowerMultiplier + (higherMultiplier - lowerMultiplier) * ratio;
+      return Math.round(BASE_PRICE_PER_DIAMOND * multiplier);
+    }
+    
+    if (qty >= 100) {
+      const lowerMultiplier = creditPacksBase.find(p => p.qty === 100).multiplier;
+      const higherMultiplier = creditPacksBase.find(p => p.qty === 200).multiplier;
+      const ratio = (qty - 100) / (200 - 100);
+      const multiplier = lowerMultiplier + (higherMultiplier - lowerMultiplier) * ratio;
+      return Math.round(BASE_PRICE_PER_DIAMOND * multiplier);
+    }
+    
+    if (qty >= 50) {
+      const lowerMultiplier = creditPacksBase.find(p => p.qty === 50).multiplier;
+      const higherMultiplier = creditPacksBase.find(p => p.qty === 100).multiplier;
+      const ratio = (qty - 50) / (100 - 50);
+      const multiplier = lowerMultiplier + (higherMultiplier - lowerMultiplier) * ratio;
+      return Math.round(BASE_PRICE_PER_DIAMOND * multiplier);
+    }
+    
+    // For quantities between 10 and 50
+    if (qty >= 10) {
+      const lowerMultiplier = creditPacksBase.find(p => p.qty === 10).multiplier;
+      const higherMultiplier = creditPacksBase.find(p => p.qty === 50).multiplier;
+      const ratio = (qty - 10) / (50 - 10);
+      const multiplier = lowerMultiplier + (higherMultiplier - lowerMultiplier) * ratio;
+      return Math.round(BASE_PRICE_PER_DIAMOND * multiplier);
+    }
+    
+    // For quantities less than 10, use proportional pricing based on the 10-pack rate
+    const minMultiplier = creditPacksBase.find(p => p.qty === 10).multiplier;
+    return Math.round(BASE_PRICE_PER_DIAMOND * minMultiplier * (qty / 10));
   }
   
   let currentQty = 100;
@@ -384,17 +453,13 @@
 
   function updateMaintenanceUI() {
     const maintenanceAlert = document.getElementById('maintenanceAlert');
-    const allInteractiveElements = ['#rechargeBtn', '#helpBtn', '#decrementBtn', '#incrementBtn', '#manualQty', '#helpWhatsAppBtn', '#joinImoBtn', '#floatWhatsApp', '#adminToggleBtn'];
-    
     if (settings.maintenanceMode) {
       maintenanceAlert.style.display = 'block';
-      // Disable main interactive elements
       document.getElementById('rechargeBtn').disabled = true;
       document.getElementById('manualQty').disabled = true;
       document.getElementById('decrementBtn').disabled = true;
       document.getElementById('incrementBtn').disabled = true;
       document.getElementById('helpBtn').disabled = true;
-      // Add a class to visually indicate disabled state
       document.querySelectorAll('.diamond-option').forEach(el => {
         el.style.pointerEvents = 'none';
         el.style.opacity = '0.5';
@@ -410,7 +475,7 @@
         el.style.pointerEvents = 'auto';
         el.style.opacity = '1';
       });
-      updateProceedButtonState(); // Re-evaluate proceed button state
+      updateProceedButtonState();
     }
   }
 
@@ -619,6 +684,7 @@
   function updateFromManualInput() {
     let qty = parseInt(manualQtyInput.value, 10);
     if (isNaN(qty)) qty = 1;
+    if (qty < 1) qty = 1;
     currentQty = qty;
     currentAmount = getPriceForQuantity(currentQty);
     document.getElementById('amountDisplay').innerHTML = `₹${currentAmount}`;
@@ -644,7 +710,7 @@
   manualQtyInput.addEventListener('input', updateFromManualInput);
   manualQtyInput.addEventListener('change', updateFromManualInput);
   
-  // Updated increment/decrement: DOUBLE the value instead of +1/-1
+  // Double increment/decrement
   document.getElementById('decrementBtn').addEventListener('click', () => {
     let val = currentQty;
     if (val <= 1) val = 1;
@@ -687,7 +753,6 @@
   }
   window.showQrMethod = showQrMethod;
   
-  // Tutorial Functions
   function openTutorial() { 
     document.getElementById('tutorialModal').classList.add('active'); 
   }
@@ -712,7 +777,6 @@
   document.getElementById('helpWhatsAppBtn').addEventListener('click', openWhatsAppHelp);
   document.getElementById('floatWhatsApp').addEventListener('click', (e) => { e.preventDefault(); openWhatsAppHelp(); });
   
-  // Join Imo Button
   document.getElementById('joinImoBtn').addEventListener('click', () => {
     window.open('https://s.imoim.net/8czyd5', '_blank');
   });
@@ -903,7 +967,6 @@
     if (e.target === adminModal) adminModal.classList.remove('active');
   });
   
-  // Load maintenance mode from storage
   const savedMaintenance = localStorage.getItem('imo_maintenance_mode');
   if (savedMaintenance !== null) {
     settings.maintenanceMode = savedMaintenance === 'true';
