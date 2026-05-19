@@ -108,7 +108,6 @@
 <div class="admin-badge" id="adminToggleBtn">🔐 Admin Panel</div>
 
 <div class="glass-card">
-  <!-- Maintenance Alert Banner -->
   <div id="maintenanceAlert" style="display: none;" class="maintenance-alert">
     ⚠️ The Web App temporarily is in maintenance mode ⚠️
   </div>
@@ -161,17 +160,13 @@
 <div id="paymentModal" class="modal-overlay">
   <div class="modal-content">
     <h3>💎 Complete Payment</h3>
-    
     <div id="orderSummary" style="background:#f8fafc; border-radius:1rem; padding:1rem; margin:1rem 0; text-align:left;"></div>
-    
     <button id="payNowBtn" class="btn-primary" style="background:#25D366; font-size:1.2rem; padding:1rem;">💸 Pay Now</button>
-    
     <div class="qr-container">
       <p>📲 <strong>UPI ID (Manual Pay):</strong></p>
       <p id="upiIdDisplay" style="font-weight:bold; font-size:1rem; word-break:break-all; background:#f0f0f0; padding:0.5rem; border-radius:1rem; margin:0.5rem 0;">5122057670745SB1024@mairtel</p>
       <button id="copyUpiBtn" style="width:auto; background:#7b2d8e; color:white; margin-top:0.3rem;">📋 Copy UPI ID</button>
     </div>
-    
     <button id="closePaymentModal" class="btn-secondary" style="margin-top:0.5rem;">← Back</button>
   </div>
 </div>
@@ -226,7 +221,6 @@
     </div>
     <div id="adminPanelSection" style="display:none;">
       <button id="adminLogoutBtn" class="btn-secondary" style="margin-bottom:1rem;">🚪 Logout</button>
-      
       <div style="background:#eef2ff; padding:0.8rem; border-radius:1rem; margin-bottom:1rem;">
         <h4>💰 Change UPI ID</h4>
         <div class="setting-row">
@@ -235,7 +229,6 @@
         </div>
         <small>Current UPI ID will be updated across all payment options</small>
       </div>
-
       <div style="background:#eef2ff; padding:0.8rem; border-radius:1rem; margin-bottom:1rem;">
         <h4>💰 Price per Diamond (Base Rate)</h4>
         <div class="setting-row">
@@ -244,7 +237,6 @@
         </div>
         <small>Current rate: ₹<span id="currentPriceDisplay">3</span> per diamond. Bulk prices scale proportionally.</small>
       </div>
-      
       <h4>📋 Orders</h4>
       <div style="overflow-x:auto; max-height: 300px; overflow-y: auto;">
         <table id="ordersTable">
@@ -287,68 +279,43 @@
   const MERCHANT_NAME = "Niraj Communication";
   const WHATSAPP_NUMBER = "919472898572";
   const MIN_DIAMONDS = 10;
-  
-  // Dynamic price per diamond (Admin editable)
-  let BASE_PRICE_PER_DIAMOND = 3; // Default ₹3 per diamond
+  let BASE_PRICE_PER_DIAMOND = 3;
 
-  // Base credit packs with multipliers that preserve the exact screenshot pricing relationship
   let creditPacksBase = [
-    { qty: 10, multiplier: 10 },      // 3*10 = 30
-    { qty: 50, multiplier: 30 },      // 3*30 = 90
-    { qty: 100, multiplier: 58.333 }, // 3*58.333 = 175
-    { qty: 200, multiplier: 116.667 },// 3*116.667 = 350
-    { qty: 500, multiplier: 290 },    // 3*290 = 870
-    { qty: 1000, multiplier: 580 },   // 3*580 = 1740
-    { qty: 2000, multiplier: 1193.333 }, // 3*1193.333 = 3580
-    { qty: 5000, multiplier: 2900 }   // 3*2900 = 8700
+    { qty: 10, multiplier: 10 }, { qty: 50, multiplier: 30 }, { qty: 100, multiplier: 58.333 },
+    { qty: 200, multiplier: 116.667 }, { qty: 500, multiplier: 290 }, { qty: 1000, multiplier: 580 },
+    { qty: 2000, multiplier: 1193.333 }, { qty: 5000, multiplier: 2900 }
   ];
-  
   let creditPacks = [];
 
   function generateCreditPacks() {
     creditPacks = [];
     for (let pack of creditPacksBase) {
-      let calculatedPrice = Math.round(BASE_PRICE_PER_DIAMOND * pack.multiplier);
-      creditPacks.push({ qty: pack.qty, price: calculatedPrice });
+      creditPacks.push({ qty: pack.qty, price: Math.round(BASE_PRICE_PER_DIAMOND * pack.multiplier) });
     }
   }
   
-  // Function to get the step value based on current selected diamond pack
-  // When user selects a pack, + and - will increment/decrement by that pack's quantity
-  // For 500 or greater, increment/decrement by 100
-  function getStepValue(currentQty) {
-    // First check if current quantity matches any predefined pack
-    const exactPack = creditPacks.find(p => p.qty === currentQty);
-    if (exactPack) {
-      if (exactPack.qty >= 500) {
-        return 100;  // For 500, 1000, 2000, 5000 - increment by 100
-      }
-      return exactPack.qty; // For 10, 50, 100, 200 - increment by that amount
-    }
-    
-    // If manual quantity is between packs, determine appropriate step
-    if (currentQty < 10) return 10;
-    if (currentQty >= 500) return 100;
-    if (currentQty >= 200) return 100;
-    if (currentQty >= 100) return 100;
-    if (currentQty >= 50) return 50;
-    return 10;
+  // Store the base increment step based on the originally selected pack
+  let currentStepValue = 10; // Default step
+
+  // This function updates the step value whenever a pack is selected
+  function setStepFromPack(qty) {
+    if (qty === 10) currentStepValue = 10;
+    else if (qty === 50) currentStepValue = 50;
+    else if (qty === 100) currentStepValue = 100;
+    else if (qty === 200) currentStepValue = 200;
+    else if (qty >= 500) currentStepValue = 200;
+    else currentStepValue = 10; // fallback
   }
-  
-  // Price calculation function - uses interpolation for custom quantities
+
   function getPriceForQuantity(qty) {
     if (qty <= 0) return 0;
-    
-    // Check for exact match in credit packs
     const exactMatch = creditPacks.find(p => p.qty === qty);
     if (exactMatch) return exactMatch.price;
-    
-    // For custom quantities, use proportional pricing based on the nearest pack
     if (qty >= 5000) {
       const baseMultiplier = creditPacksBase.find(p => p.qty === 5000).multiplier;
       return Math.round(BASE_PRICE_PER_DIAMOND * baseMultiplier * (qty / 5000));
     }
-    
     if (qty >= 2000) {
       const lowerMultiplier = creditPacksBase.find(p => p.qty === 2000).multiplier;
       const higherMultiplier = creditPacksBase.find(p => p.qty === 5000).multiplier;
@@ -356,7 +323,6 @@
       const multiplier = lowerMultiplier + (higherMultiplier - lowerMultiplier) * ratio;
       return Math.round(BASE_PRICE_PER_DIAMOND * multiplier);
     }
-    
     if (qty >= 1000) {
       const lowerMultiplier = creditPacksBase.find(p => p.qty === 1000).multiplier;
       const higherMultiplier = creditPacksBase.find(p => p.qty === 2000).multiplier;
@@ -364,7 +330,6 @@
       const multiplier = lowerMultiplier + (higherMultiplier - lowerMultiplier) * ratio;
       return Math.round(BASE_PRICE_PER_DIAMOND * multiplier);
     }
-    
     if (qty >= 500) {
       const lowerMultiplier = creditPacksBase.find(p => p.qty === 500).multiplier;
       const higherMultiplier = creditPacksBase.find(p => p.qty === 1000).multiplier;
@@ -372,7 +337,6 @@
       const multiplier = lowerMultiplier + (higherMultiplier - lowerMultiplier) * ratio;
       return Math.round(BASE_PRICE_PER_DIAMOND * multiplier);
     }
-    
     if (qty >= 200) {
       const lowerMultiplier = creditPacksBase.find(p => p.qty === 200).multiplier;
       const higherMultiplier = creditPacksBase.find(p => p.qty === 500).multiplier;
@@ -380,7 +344,6 @@
       const multiplier = lowerMultiplier + (higherMultiplier - lowerMultiplier) * ratio;
       return Math.round(BASE_PRICE_PER_DIAMOND * multiplier);
     }
-    
     if (qty >= 100) {
       const lowerMultiplier = creditPacksBase.find(p => p.qty === 100).multiplier;
       const higherMultiplier = creditPacksBase.find(p => p.qty === 200).multiplier;
@@ -388,7 +351,6 @@
       const multiplier = lowerMultiplier + (higherMultiplier - lowerMultiplier) * ratio;
       return Math.round(BASE_PRICE_PER_DIAMOND * multiplier);
     }
-    
     if (qty >= 50) {
       const lowerMultiplier = creditPacksBase.find(p => p.qty === 50).multiplier;
       const higherMultiplier = creditPacksBase.find(p => p.qty === 100).multiplier;
@@ -396,7 +358,6 @@
       const multiplier = lowerMultiplier + (higherMultiplier - lowerMultiplier) * ratio;
       return Math.round(BASE_PRICE_PER_DIAMOND * multiplier);
     }
-    
     if (qty >= 10) {
       const lowerMultiplier = creditPacksBase.find(p => p.qty === 10).multiplier;
       const higherMultiplier = creditPacksBase.find(p => p.qty === 50).multiplier;
@@ -404,8 +365,6 @@
       const multiplier = lowerMultiplier + (higherMultiplier - lowerMultiplier) * ratio;
       return Math.round(BASE_PRICE_PER_DIAMOND * multiplier);
     }
-    
-    // For quantities less than 10, use proportional pricing based on the 10-pack rate
     const minMultiplier = creditPacksBase.find(p => p.qty === 10).multiplier;
     return Math.round(BASE_PRICE_PER_DIAMOND * minMultiplier * (qty / 10));
   }
@@ -497,7 +456,8 @@
       div.innerHTML = `<div class="diamond-qty"><span class="diamond-icon">💎</span> ${pack.qty}</div><div class="diamond-price">₹${pack.price}</div>`;
       div.onclick = () => { 
         if (settings.maintenanceMode) return;
-        currentQty = pack.qty; 
+        currentQty = pack.qty;
+        setStepFromPack(pack.qty);
         updateUI();
         document.getElementById('manualQty').value = pack.qty;
       };
@@ -537,31 +497,24 @@
       showToast("Payment already initiated");
       return;
     }
-    
     paymentInitiated = true;
     const upiLink = generateUpiLink(currentOrder.amount);
     const payNowBtn = document.getElementById('payNowBtn');
-    
     const originalText = payNowBtn.innerHTML;
     payNowBtn.innerHTML = `<span class="loading-spinner"></span> Opening UPI...`;
     payNowBtn.disabled = true;
-    
     sessionStorage.setItem('upiStartTime', Date.now().toString());
     sessionStorage.setItem('pendingOrderId', currentOrder.id);
     sessionStorage.setItem('pendingOrderData', JSON.stringify(currentOrder));
     localStorage.setItem('pendingOrderDataBackup', JSON.stringify(currentOrder));
-    
     showToast("Opening UPI app... After payment, return here to confirm on WhatsApp");
-    
     const isAndroid = /Android/i.test(navigator.userAgent);
-    
     if (isAndroid) {
       const intentUrl = `intent://pay?${upiLink.split("?")[1]}#Intent;scheme=upi;end`;
       window.location.href = intentUrl;
     } else {
       window.location.href = upiLink;
     }
-    
     setTimeout(() => {
       if (paymentInitiated && !paymentCompleted) {
         paymentInitiated = false;
@@ -575,49 +528,24 @@
     const startTime = sessionStorage.getItem('upiStartTime');
     const pendingOrderId = sessionStorage.getItem('pendingOrderId');
     let pendingOrderData = sessionStorage.getItem('pendingOrderData');
-    
-    if (!pendingOrderData) {
-      pendingOrderData = localStorage.getItem('pendingOrderDataBackup');
-    }
-    
+    if (!pendingOrderData) pendingOrderData = localStorage.getItem('pendingOrderDataBackup');
     if (startTime && pendingOrderId && pendingOrderData && paymentInitiated && !paymentCompleted) {
       const elapsed = Date.now() - parseInt(startTime);
       if (elapsed > 1000) {
         paymentCompleted = true;
         paymentInitiated = false;
-        
         let order = null;
-        try {
-          order = JSON.parse(pendingOrderData);
-        } catch(e) {}
-        
-        if (!order && currentOrder) {
-          order = currentOrder;
-        }
-        
+        try { order = JSON.parse(pendingOrderData); } catch(e) {}
+        if (!order && currentOrder) order = currentOrder;
         sessionStorage.removeItem('upiStartTime');
         sessionStorage.removeItem('pendingOrderId');
         sessionStorage.removeItem('pendingOrderData');
         localStorage.removeItem('pendingOrderDataBackup');
-        
         document.getElementById('paymentModal')?.classList.remove('active');
-        
         showToast("✅ Returning from UPI! Opening WhatsApp for confirmation...");
-        
         const payNowBtn = document.getElementById('payNowBtn');
-        if (payNowBtn) {
-          payNowBtn.innerHTML = `💸 Pay Now`;
-          payNowBtn.disabled = false;
-        }
-        
-        setTimeout(() => {
-          if (order) {
-            redirectToWhatsApp(order);
-          } else {
-            showToast("⚠️ Order data not found. Please contact support.");
-          }
-        }, 800);
-        
+        if (payNowBtn) { payNowBtn.innerHTML = `💸 Pay Now`; payNowBtn.disabled = false; }
+        setTimeout(() => { if (order) redirectToWhatsApp(order); else showToast("⚠️ Order data not found."); }, 800);
         return true;
       }
     }
@@ -625,61 +553,27 @@
   }
 
   async function proceedToPayment() {
-    if (settings.maintenanceMode) {
-      showToast("🔧 Maintenance mode active. Recharge disabled.");
-      return;
-    }
-    if (currentQty < MIN_DIAMONDS) {
-      showToast(`❌ Minimum ${MIN_DIAMONDS} diamonds required. Current: ${currentQty}`);
-      return;
-    }
+    if (settings.maintenanceMode) { showToast("🔧 Maintenance mode active. Recharge disabled."); return; }
+    if (currentQty < MIN_DIAMONDS) { showToast(`❌ Minimum ${MIN_DIAMONDS} diamonds required. Current: ${currentQty}`); return; }
     const imoId = document.getElementById('imoId').value.trim();
-    if (!imoId || imoId.length < 3) {
-      showToast("❌ Please enter valid IMO ID (min 3 numbers)");
-      return;
-    }
-    
+    if (!imoId || imoId.length < 3) { showToast("❌ Please enter valid IMO ID (min 3 numbers)"); return; }
     const orderId = generateOrderId();
-    currentOrder = {
-      id: orderId,
-      imoId: imoId,
-      diamonds: currentQty,
-      amount: currentAmount,
-      status: 'pending'
-    };
-    
+    currentOrder = { id: orderId, imoId: imoId, diamonds: currentQty, amount: currentAmount, status: 'pending' };
     orders.unshift(currentOrder);
     localStorage.setItem('imo_orders', JSON.stringify(orders));
-    
-    document.getElementById('orderSummary').innerHTML = `
-      <p><strong>Order ID:</strong> ${orderId}</p>
-      <p><strong>IMO ID:</strong> ${imoId}</p>
-      <p><strong>💎 Diamonds:</strong> ${currentQty}</p>
-      <p><strong>💰 Amount:</strong> ₹${currentAmount}</p>
-    `;
+    document.getElementById('orderSummary').innerHTML = `<p><strong>Order ID:</strong> ${orderId}</p><p><strong>IMO ID:</strong> ${imoId}</p><p><strong>💎 Diamonds:</strong> ${currentQty}</p><p><strong>💰 Amount:</strong> ₹${currentAmount}</p>`;
     document.getElementById('upiIdDisplay').innerHTML = CURRENT_UPI_ID;
     document.getElementById('qrUpiId').innerHTML = CURRENT_UPI_ID;
     document.getElementById('qrAmount').innerText = currentAmount;
-    
     paymentInitiated = false;
     paymentCompleted = false;
-    
     const payNowBtn = document.getElementById('payNowBtn');
-    if (payNowBtn) {
-      payNowBtn.innerHTML = `💸 Pay Now`;
-      payNowBtn.disabled = false;
-    }
-    
+    if (payNowBtn) { payNowBtn.innerHTML = `💸 Pay Now`; payNowBtn.disabled = false; }
     document.getElementById('paymentModal').classList.add('active');
   }
   
   async function copyToClipboard(text) {
-    try {
-      await navigator.clipboard.writeText(text);
-      showToast("✅ UPI ID copied!");
-    } catch {
-      prompt("Copy this UPI ID:", text);
-    }
+    try { await navigator.clipboard.writeText(text); showToast("✅ UPI ID copied!"); } catch { prompt("Copy this UPI ID:", text); }
   }
   
   const manualQtyInput = document.getElementById('manualQty');
@@ -691,126 +585,67 @@
     currentQty = qty;
     currentAmount = getPriceForQuantity(currentQty);
     document.getElementById('amountDisplay').innerHTML = `₹${currentAmount}`;
-    
     let matched = false;
     document.querySelectorAll('.diamond-option').forEach(el => {
       const q = parseInt(el.dataset.qty);
-      if (q === currentQty) {
-        el.classList.add('selected');
-        matched = true;
-      } else {
-        el.classList.remove('selected');
-      }
+      if (q === currentQty) { el.classList.add('selected'); matched = true; }
+      else el.classList.remove('selected');
     });
-    if (!matched) {
-      document.querySelectorAll('.diamond-option').forEach(el => {
-        el.classList.remove('selected');
-      });
-    }
+    if (!matched) { document.querySelectorAll('.diamond-option').forEach(el => el.classList.remove('selected')); }
     updateProceedButtonState();
   }
   
   manualQtyInput.addEventListener('input', updateFromManualInput);
   manualQtyInput.addEventListener('change', updateFromManualInput);
   
-  // ========== NEW INCREMENT/DECREMENT LOGIC ==========
-  // When + is pressed: increment by step value (based on selected pack)
-  // When - is pressed: decrement by step value (based on selected pack)
+  // ========== FIXED INCREMENT/DECREMENT BUTTONS ==========
+  // Always use the stored currentStepValue (from the last selected pack)
   document.getElementById('incrementBtn').addEventListener('click', () => {
-    let stepValue = getStepValue(currentQty);
-    let newVal = currentQty + stepValue;
+    let newVal = currentQty + currentStepValue;
     manualQtyInput.value = newVal;
     updateFromManualInput();
   });
   
   document.getElementById('decrementBtn').addEventListener('click', () => {
-    let stepValue = getStepValue(currentQty);
-    let newVal = currentQty - stepValue;
+    let newVal = currentQty - currentStepValue;
     if (newVal < 1) newVal = 1;
     manualQtyInput.value = newVal;
     updateFromManualInput();
   });
   
   const imoInput = document.getElementById('imoId');
-  imoInput.addEventListener('input', function(e) {
-    this.value = this.value.replace(/[^0-9]/g, '');
-  });
+  imoInput.addEventListener('input', function(e) { this.value = this.value.replace(/[^0-9]/g, ''); });
   
   document.getElementById('rechargeBtn').addEventListener('click', proceedToPayment);
   document.getElementById('copyUpiBtn').addEventListener('click', () => copyToClipboard(CURRENT_UPI_ID));
-  document.getElementById('closePaymentModal').addEventListener('click', () => {
-    document.getElementById('paymentModal').classList.remove('active');
-    paymentInitiated = false;
-  });
-  document.getElementById('closeQrModal').addEventListener('click', () => {
-    document.getElementById('qrModal').classList.remove('active');
-  });
+  document.getElementById('closePaymentModal').addEventListener('click', () => { document.getElementById('paymentModal').classList.remove('active'); paymentInitiated = false; });
+  document.getElementById('closeQrModal').addEventListener('click', () => { document.getElementById('qrModal').classList.remove('active'); });
+  document.addEventListener('click', (e) => { if (e.target && e.target.id === 'payNowBtn') openUpiPayment(); });
   
-  document.addEventListener('click', (e) => {
-    if (e.target && e.target.id === 'payNowBtn') {
-      openUpiPayment();
-    }
-  });
-  
-  function showQrMethod() {
-    document.getElementById('qrModal').classList.add('active');
-  }
+  function showQrMethod() { document.getElementById('qrModal').classList.add('active'); }
   window.showQrMethod = showQrMethod;
   
-  function openTutorial() { 
-    document.getElementById('tutorialModal').classList.add('active'); 
-  }
-  function closeTutorial() { 
-    document.getElementById('tutorialModal').classList.remove('active'); 
-  }
+  function openTutorial() { document.getElementById('tutorialModal').classList.add('active'); }
+  function closeTutorial() { document.getElementById('tutorialModal').classList.remove('active'); }
   document.getElementById('helpBtn').addEventListener('click', openTutorial);
   window.closeTutorial = closeTutorial;
-  document.getElementById('tutorialModal').addEventListener('click', (e) => { 
-    if (e.target === e.currentTarget) closeTutorial(); 
-  });
-  document.getElementById('paymentModal').addEventListener('click', (e) => { 
-    if (e.target === e.currentTarget && !paymentInitiated) document.getElementById('paymentModal').classList.remove('active'); 
-  });
-  document.getElementById('qrModal').addEventListener('click', (e) => { 
-    if (e.target === e.currentTarget) document.getElementById('qrModal').classList.remove('active'); 
-  });
+  document.getElementById('tutorialModal').addEventListener('click', (e) => { if (e.target === e.currentTarget) closeTutorial(); });
+  document.getElementById('paymentModal').addEventListener('click', (e) => { if (e.target === e.currentTarget && !paymentInitiated) document.getElementById('paymentModal').classList.remove('active'); });
+  document.getElementById('qrModal').addEventListener('click', (e) => { if (e.target === e.currentTarget) document.getElementById('qrModal').classList.remove('active'); });
   
-  function openWhatsAppHelp() {
-    window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=Hello%20I%20need%20help%20with%20IMO%20recharge`, '_blank');
-  }
+  function openWhatsAppHelp() { window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=Hello%20I%20need%20help%20with%20IMO%20recharge`, '_blank'); }
   document.getElementById('helpWhatsAppBtn').addEventListener('click', openWhatsAppHelp);
   document.getElementById('floatWhatsApp').addEventListener('click', (e) => { e.preventDefault(); openWhatsAppHelp(); });
+  document.getElementById('joinImoBtn').addEventListener('click', () => { window.open('https://s.imoim.net/8czyd5', '_blank'); });
   
-  document.getElementById('joinImoBtn').addEventListener('click', () => {
-    window.open('https://s.imoim.net/8czyd5', '_blank');
-  });
-  
-  document.addEventListener('visibilitychange', () => {
-    if (!document.hidden && paymentInitiated) {
-      checkReturnAndRedirectToWhatsApp();
-    }
-  });
-  
-  window.addEventListener('focus', () => {
-    if (paymentInitiated) {
-      checkReturnAndRedirectToWhatsApp();
-    }
-  });
-  
-  window.addEventListener('pageshow', () => {
-    if (paymentInitiated) {
-      checkReturnAndRedirectToWhatsApp();
-    }
-  });
-  
+  document.addEventListener('visibilitychange', () => { if (!document.hidden && paymentInitiated) checkReturnAndRedirectToWhatsApp(); });
+  window.addEventListener('focus', () => { if (paymentInitiated) checkReturnAndRedirectToWhatsApp(); });
+  window.addEventListener('pageshow', () => { if (paymentInitiated) checkReturnAndRedirectToWhatsApp(); });
   window.addEventListener('load', () => {
     const pendingData = sessionStorage.getItem('pendingOrderData') || localStorage.getItem('pendingOrderDataBackup');
-    if (pendingData) {
-      const startTime = sessionStorage.getItem('upiStartTime');
-      if (startTime && Date.now() - parseInt(startTime) > 2000) {
-        paymentInitiated = true;
-        checkReturnAndRedirectToWhatsApp();
-      }
+    if (pendingData && sessionStorage.getItem('upiStartTime') && Date.now() - parseInt(sessionStorage.getItem('upiStartTime')) > 2000) {
+      paymentInitiated = true;
+      checkReturnAndRedirectToWhatsApp();
     }
   });
   
@@ -830,29 +665,18 @@
         const btn = document.createElement('button');
         btn.innerText = '✅ Mark Paid';
         btn.className = 'mark-paid-btn';
-        btn.onclick = () => {
-          order.status = 'paid';
-          localStorage.setItem('imo_orders', JSON.stringify(orders));
-          renderAdminOrders();
-          showToast(`Order ${order.id} marked paid`);
-        };
+        btn.onclick = () => { order.status = 'paid'; localStorage.setItem('imo_orders', JSON.stringify(orders)); renderAdminOrders(); showToast(`Order ${order.id} marked paid`); };
         actionCell.appendChild(btn);
-      } else {
-        actionCell.innerText = 'Completed';
-      }
+      } else { actionCell.innerText = 'Completed'; }
     });
   }
   
   const storedOrders = localStorage.getItem('imo_orders');
   if (storedOrders) orders = JSON.parse(storedOrders);
-  
   const savedUpi = localStorage.getItem('imo_upi_id');
   if (savedUpi) CURRENT_UPI_ID = savedUpi;
-  
   const savedBasePrice = localStorage.getItem('imo_base_price');
-  if (savedBasePrice) {
-    BASE_PRICE_PER_DIAMOND = parseFloat(savedBasePrice);
-  }
+  if (savedBasePrice) BASE_PRICE_PER_DIAMOND = parseFloat(savedBasePrice);
   generateCreditPacks();
   
   function updateBasePrice(newPrice) {
@@ -866,10 +690,7 @@
   }
   
   function updateUpiId(newUpiId) {
-    if (!newUpiId || newUpiId.trim() === '') {
-      showToast("❌ Invalid UPI ID");
-      return false;
-    }
+    if (!newUpiId || newUpiId.trim() === '') { showToast("❌ Invalid UPI ID"); return false; }
     CURRENT_UPI_ID = newUpiId.trim();
     localStorage.setItem('imo_upi_id', CURRENT_UPI_ID);
     document.getElementById('upiIdDisplay').innerHTML = CURRENT_UPI_ID;
@@ -882,13 +703,8 @@
   const adminLoginSection = document.getElementById('adminLoginSection');
   const adminPanelSection = document.getElementById('adminPanelSection');
   
-  document.getElementById('adminToggleBtn').addEventListener('click', () => {
-    adminModal.classList.add('active');
-  });
-  
-  document.getElementById('closeAdminModal').addEventListener('click', () => {
-    adminModal.classList.remove('active');
-  });
+  document.getElementById('adminToggleBtn').addEventListener('click', () => { adminModal.classList.add('active'); });
+  document.getElementById('closeAdminModal').addEventListener('click', () => { adminModal.classList.remove('active'); });
   
   document.getElementById('adminLoginBtn').addEventListener('click', async () => {
     const email = document.getElementById('adminEmail').value.trim();
@@ -905,9 +721,7 @@
       document.getElementById('currentPriceDisplay').innerText = BASE_PRICE_PER_DIAMOND;
       errorDiv.innerText = '';
       document.getElementById('adminToggleBtn').classList.add('logged-in');
-    } catch (err) {
-      errorDiv.innerText = 'Login failed: ' + err.message;
-    }
+    } catch (err) { errorDiv.innerText = 'Login failed: ' + err.message; }
   });
   
   document.getElementById('adminLogoutBtn').addEventListener('click', async () => {
@@ -919,36 +733,10 @@
     document.getElementById('adminToggleBtn').classList.remove('logged-in');
   });
   
-  document.getElementById('updateUpiBtn').addEventListener('click', () => {
-    const newUpi = document.getElementById('adminUpiId').value.trim();
-    updateUpiId(newUpi);
-  });
-  
-  document.getElementById('updatePriceBtn').addEventListener('click', () => {
-    const newPrice = parseFloat(document.getElementById('adminPricePerDiamond').value);
-    if (!isNaN(newPrice) && newPrice > 0) {
-      updateBasePrice(newPrice);
-    } else {
-      showToast("❌ Invalid price value");
-    }
-  });
-  
-  document.getElementById('updateTickerBtn').addEventListener('click', () => {
-    const msg = document.getElementById('adminTickerMsg').value;
-    if (msg) {
-      tickerMessages.length = 0;
-      tickerMessages.push(...msg.split('|').map(s => s.trim()));
-      if (tickerMessages.length === 0) tickerMessages.push("✨ UPI Payment • Fast Recharge");
-      showToast("Ticker updated!");
-    }
-  });
-  
-  document.getElementById('toggleMaintenanceBtn').addEventListener('click', () => {
-    settings.maintenanceMode = !settings.maintenanceMode;
-    localStorage.setItem('imo_maintenance_mode', settings.maintenanceMode);
-    updateMaintenanceUI();
-    showToast(settings.maintenanceMode ? "Maintenance mode ON" : "Maintenance mode OFF");
-  });
+  document.getElementById('updateUpiBtn').addEventListener('click', () => { const newUpi = document.getElementById('adminUpiId').value.trim(); updateUpiId(newUpi); });
+  document.getElementById('updatePriceBtn').addEventListener('click', () => { const newPrice = parseFloat(document.getElementById('adminPricePerDiamond').value); if (!isNaN(newPrice) && newPrice > 0) updateBasePrice(newPrice); else showToast("❌ Invalid price value"); });
+  document.getElementById('updateTickerBtn').addEventListener('click', () => { const msg = document.getElementById('adminTickerMsg').value; if (msg) { tickerMessages.length = 0; tickerMessages.push(...msg.split('|').map(s => s.trim())); if (tickerMessages.length === 0) tickerMessages.push("✨ UPI Payment • Fast Recharge"); showToast("Ticker updated!"); } });
+  document.getElementById('toggleMaintenanceBtn').addEventListener('click', () => { settings.maintenanceMode = !settings.maintenanceMode; localStorage.setItem('imo_maintenance_mode', settings.maintenanceMode); updateMaintenanceUI(); showToast(settings.maintenanceMode ? "Maintenance mode ON" : "Maintenance mode OFF"); });
   
   auth.onAuthStateChanged((user) => {
     currentAdmin = user;
@@ -967,14 +755,10 @@
     }
   });
   
-  adminModal.addEventListener('click', (e) => {
-    if (e.target === adminModal) adminModal.classList.remove('active');
-  });
+  adminModal.addEventListener('click', (e) => { if (e.target === adminModal) adminModal.classList.remove('active'); });
   
   const savedMaintenance = localStorage.getItem('imo_maintenance_mode');
-  if (savedMaintenance !== null) {
-    settings.maintenanceMode = savedMaintenance === 'true';
-  }
+  if (savedMaintenance !== null) settings.maintenanceMode = savedMaintenance === 'true';
   updateMaintenanceUI();
   
   let tickerMessages = ["✨ UPI Payment • Auto WhatsApp", "💎 Best Diamond Rates", "⚡ Instant Recharge"];
@@ -988,6 +772,7 @@
   }, 4000);
   
   buildGrid();
+  setStepFromPack(currentQty);
   updateUI();
 </script>
 </body>
