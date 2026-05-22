@@ -321,7 +321,6 @@
     }
   }
   
-  // Load per diamond rates from localStorage
   function loadPerDiamondRates() {
     const saved = localStorage.getItem('imo_per_diamond_rates');
     if (saved) {
@@ -358,9 +357,9 @@
   let orders = [];
   let currentAdmin = null;
   
-  // CRITICAL: Lock the selected pack rate - this NEVER changes once selected
-  let lockedPackRate = 1.76;   // The rate that stays locked
-  let lockedPackQty = 100;     // The pack that was selected
+  // Lock the selected pack rate - this NEVER changes once selected
+  let lockedPackRate = 1.76;
+  let lockedPackQty = 100;
 
   function showToast(msg) {
     let t = document.querySelector('.toast');
@@ -385,7 +384,6 @@
     }
   }
 
-  // FIXED: Price = quantity × LOCKED pack rate (never changes from selected pack)
   function getPriceForQuantity(qty) {
     if (qty <= 0) return 0;
     return Math.round(qty * lockedPackRate);
@@ -447,14 +445,18 @@
       div.onclick = () => { 
         if (settings.maintenanceMode) return;
         currentQty = pack.qty;
-        // LOCK the rate when a pack is selected - this is the key fix!
         lockedPackRate = getPackRate(pack.qty);
         lockedPackQty = pack.qty;
+        // Set the step value based on the selected pack
         if (pack.qty === 10) currentStepValue = 10;
         else if (pack.qty === 50) currentStepValue = 50;
         else if (pack.qty === 100) currentStepValue = 100;
         else if (pack.qty === 200) currentStepValue = 200;
-        else if (pack.qty >= 500) currentStepValue = 200;
+        else if (pack.qty === 500) currentStepValue = 500;
+        else if (pack.qty === 1000) currentStepValue = 1000;
+        else if (pack.qty === 2000) currentStepValue = 2000;
+        else if (pack.qty === 5000) currentStepValue = 5000;
+        else currentStepValue = 10;
         updateUI();
         document.getElementById('manualQty').value = pack.qty;
       };
@@ -635,7 +637,6 @@
     if (isNaN(qty)) qty = 1;
     if (qty < 1) qty = 1;
     
-    // Decrement protection - cannot go below the selected pack size
     if (qty < lockedPackQty) {
       qty = lockedPackQty;
       manualQtyInput.value = qty;
@@ -645,7 +646,6 @@
     currentQty = qty;
     currentAmount = getPriceForQuantity(currentQty);
     document.getElementById('amountDisplay').innerHTML = `₹${currentAmount}`;
-    
     let matched = false;
     document.querySelectorAll('.diamond-option').forEach(el => {
       const q = parseInt(el.dataset.qty);
@@ -655,15 +655,14 @@
       }
       else el.classList.remove('selected');
     });
-    if (!matched) {
-      // Keep existing selected pack
-    }
     updateProceedButtonState();
   }
   
   manualQtyInput.addEventListener('input', updateFromManualInput);
   manualQtyInput.addEventListener('change', updateFromManualInput);
   
+  // ========== FIXED INCREMENT BUTTON ==========
+  // Increment by the selected pack's quantity every time (+10, +50, +100, +200, +500, +1000, +2000, +5000)
   document.getElementById('incrementBtn').addEventListener('click', () => {
     let newVal = currentQty + currentStepValue;
     manualQtyInput.value = newVal;
@@ -771,7 +770,6 @@
     savePerDiamondRates();
     generateCreditPacks();
     buildGrid();
-    // Update locked rate if current pack was changed
     lockedPackRate = getPackRate(lockedPackQty);
     updateUI();
     showToast("✅ All per-diamond rates saved successfully!");
