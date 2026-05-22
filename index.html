@@ -229,6 +229,16 @@
         </div>
         <small>Current UPI ID will be updated across all payment options</small>
       </div>
+      
+      <div style="background:#eef2ff; padding:0.8rem; border-radius:1rem; margin-bottom:1rem;">
+        <h4>💎 Per Diamond Cost (Set Rate per Diamond)</h4>
+        <div id="perDiamondRatesContainer">
+          <!-- Dynamic per-diamond rate inputs will be added here -->
+        </div>
+        <button id="saveRatesBtn" class="btn-primary" style="margin-top:0.5rem;">💾 Save Per Diamond Rates</button>
+        <small style="display:block; margin-top:0.5rem;">Pack price = Per Diamond Rate × Quantity</small>
+      </div>
+      
       <div style="background:#eef2ff; padding:0.8rem; border-radius:1rem; margin-bottom:1rem;">
         <h4>💰 Price per Diamond (Base Rate)</h4>
         <div class="setting-row">
@@ -240,7 +250,7 @@
       <h4>📋 Orders</h4>
       <div style="overflow-x:auto; max-height: 300px; overflow-y: auto;">
         <table id="ordersTable">
-          <thead><tr><th>Order ID</th><th>IMO ID</th><th>Diamonds</th><th>Amount</th><th>Status</th><th>Action</th><tr></thead>
+          <thead><tr><th>Order ID</th><th>IMO ID</th><th>Diamonds</th><th>Amount</th><th>Status</th><th>Action</th></tr></thead>
           <tbody id="ordersTableBody"></tbody>
         </table>
       </div>
@@ -277,7 +287,7 @@
   // ========== PAY0 CONFIGURATION ==========
   const PAY0_API_URL = '/api/create-order';
   const PAY0_CHECK_URL = '/api/check-order-status';
-  const DUMMY_MOBILE = "6203240682"; // Dummy mobile number used for gateway
+  const DUMMY_MOBILE = "6203240682";
 
   // ========== CONFIGURATION ==========
   let CURRENT_UPI_ID = "5122057670745SB1024@mairtel";
@@ -286,18 +296,56 @@
   const MIN_DIAMONDS = 10;
   let BASE_PRICE_PER_DIAMOND = 3;
 
-  let creditPacksBase = [
-    { qty: 10, multiplier: 10 }, { qty: 50, multiplier: 30 }, { qty: 100, multiplier: 58.333 },
-    { qty: 200, multiplier: 116.667 }, { qty: 500, multiplier: 290 }, { qty: 1000, multiplier: 580 },
-    { qty: 2000, multiplier: 1193.333 }, { qty: 5000, multiplier: 2900 }
-  ];
+  // Pack quantities
+  const packQuantities = [10, 50, 100, 200, 500, 1000, 2000, 5000];
+  
+  // Per diamond rates for each pack (admin editable)
+  let perDiamondRates = {
+    10: 3.0,
+    50: 1.8,
+    100: 1.76,
+    200: 1.76,
+    500: 1.75,
+    1000: 1.75,
+    2000: 1.75,
+    5000: 1.75
+  };
+  
   let creditPacks = [];
 
   function generateCreditPacks() {
     creditPacks = [];
-    for (let pack of creditPacksBase) {
-      creditPacks.push({ qty: pack.qty, price: Math.round(BASE_PRICE_PER_DIAMOND * pack.multiplier) });
+    for (let qty of packQuantities) {
+      let price = Math.round(perDiamondRates[qty] * qty);
+      creditPacks.push({ qty: qty, price: price });
     }
+  }
+  
+  // Load per diamond rates from localStorage
+  function loadPerDiamondRates() {
+    const saved = localStorage.getItem('imo_per_diamond_rates');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        for (let qty of packQuantities) {
+          if (parsed[qty]) {
+            perDiamondRates[qty] = parsed[qty];
+          }
+        }
+      } catch(e) {}
+    }
+  }
+  
+  function savePerDiamondRates() {
+    localStorage.setItem('imo_per_diamond_rates', JSON.stringify(perDiamondRates));
+  }
+  
+  function getPackPrice(qty) {
+    return Math.round(perDiamondRates[qty] * qty);
+  }
+  
+  function getPackRate(qty) {
+    return perDiamondRates[qty];
   }
   
   let currentStepValue = 10;
@@ -309,6 +357,10 @@
   let settings = { maintenanceMode: false, customTickerMessages: ["✨ Pay0 Gateway • Fast Recharge"] };
   let orders = [];
   let currentAdmin = null;
+  
+  // CRITICAL: Lock the selected pack rate - this NEVER changes once selected
+  let lockedPackRate = 1.76;   // The rate that stays locked
+  let lockedPackQty = 100;     // The pack that was selected
 
   function showToast(msg) {
     let t = document.querySelector('.toast');
@@ -331,6 +383,12 @@
       proceedBtn.style.opacity = '1';
       proceedBtn.title = '';
     }
+  }
+
+  // FIXED: Price = quantity × LOCKED pack rate (never changes from selected pack)
+  function getPriceForQuantity(qty) {
+    if (qty <= 0) return 0;
+    return Math.round(qty * lockedPackRate);
   }
 
   function updateUI() {
@@ -389,29 +447,19 @@
       div.onclick = () => { 
         if (settings.maintenanceMode) return;
         currentQty = pack.qty;
-        setStepFromPack(pack.qty);
+        // LOCK the rate when a pack is selected - this is the key fix!
+        lockedPackRate = getPackRate(pack.qty);
+        lockedPackQty = pack.qty;
+        if (pack.qty === 10) currentStepValue = 10;
+        else if (pack.qty === 50) currentStepValue = 50;
+        else if (pack.qty === 100) currentStepValue = 100;
+        else if (pack.qty === 200) currentStepValue = 200;
+        else if (pack.qty >= 500) currentStepValue = 200;
         updateUI();
         document.getElementById('manualQty').value = pack.qty;
       };
       grid.appendChild(div);
     });
-  }
-
-  function setStepFromPack(qty) {
-    if (qty === 10) currentStepValue = 10;
-    else if (qty === 50) currentStepValue = 50;
-    else if (qty === 100) currentStepValue = 100;
-    else if (qty === 200) currentStepValue = 200;
-    else if (qty >= 500) currentStepValue = 200;
-    else currentStepValue = 10;
-  }
-
-  function getPriceForQuantity(qty) {
-    if (qty <= 0) return 0;
-    const exactMatch = creditPacks.find(p => p.qty === qty);
-    if (exactMatch) return exactMatch.price;
-    const minMultiplier = creditPacksBase.find(p => p.qty === 10).multiplier;
-    return Math.round(BASE_PRICE_PER_DIAMOND * minMultiplier * (qty / 10));
   }
 
   function redirectToWhatsApp(orderData) {
@@ -420,7 +468,6 @@
     window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${msg}`, '_blank');
   }
 
-  // ========== PAY0 PAYMENT FUNCTION (NO MOBILE REQUIRED - USING DUMMY) ==========
   async function proceedToPayment() {
     if (settings.maintenanceMode) { showToast("🔧 Maintenance mode active. Recharge disabled."); return; }
     if (currentQty < MIN_DIAMONDS) { showToast(`❌ Minimum ${MIN_DIAMONDS} diamonds required. Current: ${currentQty}`); return; }
@@ -428,7 +475,6 @@
     const imoId = document.getElementById('imoId').value.trim();
     if (!imoId || imoId.length < 3) { showToast("❌ Please enter valid IMO ID (min 3 numbers)"); return; }
     
-    // Using dummy mobile number - no user input required
     const mobileNumber = DUMMY_MOBILE;
     
     const orderId = generateOrderId();
@@ -479,7 +525,6 @@
     }
   }
 
-  // Check payment success on page load (when returning from Pay0)
   function checkPaymentSuccess() {
     const urlParams = new URLSearchParams(window.location.search);
     const paymentSuccess = urlParams.get('payment_success');
@@ -498,7 +543,6 @@
     }
   }
 
-  // Fallback: Manual UPI payment method
   function openUpiPayment() {
     if (settings.maintenanceMode) {
       showToast("🔧 Maintenance mode active. Please try again later.");
@@ -590,16 +634,30 @@
     let qty = parseInt(manualQtyInput.value, 10);
     if (isNaN(qty)) qty = 1;
     if (qty < 1) qty = 1;
+    
+    // Decrement protection - cannot go below the selected pack size
+    if (qty < lockedPackQty) {
+      qty = lockedPackQty;
+      manualQtyInput.value = qty;
+      showToast(`⚠️ Cannot go below ${lockedPackQty} diamonds (minimum for this pack)`);
+    }
+    
     currentQty = qty;
     currentAmount = getPriceForQuantity(currentQty);
     document.getElementById('amountDisplay').innerHTML = `₹${currentAmount}`;
+    
     let matched = false;
     document.querySelectorAll('.diamond-option').forEach(el => {
       const q = parseInt(el.dataset.qty);
-      if (q === currentQty) { el.classList.add('selected'); matched = true; }
+      if (q === currentQty) { 
+        el.classList.add('selected'); 
+        matched = true;
+      }
       else el.classList.remove('selected');
     });
-    if (!matched) { document.querySelectorAll('.diamond-option').forEach(el => el.classList.remove('selected')); }
+    if (!matched) {
+      // Keep existing selected pack
+    }
     updateProceedButtonState();
   }
   
@@ -614,6 +672,10 @@
   
   document.getElementById('decrementBtn').addEventListener('click', () => {
     let newVal = currentQty - currentStepValue;
+    if (newVal < lockedPackQty) {
+      showToast(`⚠️ Cannot go below ${lockedPackQty} diamonds (minimum for this pack)`);
+      newVal = lockedPackQty;
+    }
     if (newVal < 1) newVal = 1;
     manualQtyInput.value = newVal;
     updateFromManualInput();
@@ -679,20 +741,54 @@
     });
   }
   
+  function renderPerDiamondRatesInAdmin() {
+    const container = document.getElementById('perDiamondRatesContainer');
+    if (!container) return;
+    container.innerHTML = '';
+    for (let qty of packQuantities) {
+      const div = document.createElement('div');
+      div.className = 'setting-row';
+      div.style.marginBottom = '0.5rem';
+      div.innerHTML = `
+        <label style="min-width:100px;">${qty} Diamonds:</label>
+        <input type="number" id="rate_${qty}" value="${perDiamondRates[qty]}" step="0.01" min="0.5" style="width:100px;">
+        <span>₹ per diamond → Pack price: ₹${Math.round(perDiamondRates[qty] * qty)}</span>
+      `;
+      container.appendChild(div);
+    }
+  }
+  
+  function saveAllPerDiamondRates() {
+    for (let qty of packQuantities) {
+      const input = document.getElementById(`rate_${qty}`);
+      if (input) {
+        const newRate = parseFloat(input.value);
+        if (!isNaN(newRate) && newRate > 0) {
+          perDiamondRates[qty] = newRate;
+        }
+      }
+    }
+    savePerDiamondRates();
+    generateCreditPacks();
+    buildGrid();
+    // Update locked rate if current pack was changed
+    lockedPackRate = getPackRate(lockedPackQty);
+    updateUI();
+    showToast("✅ All per-diamond rates saved successfully!");
+  }
+  
   const storedOrders = localStorage.getItem('imo_orders');
   if (storedOrders) orders = JSON.parse(storedOrders);
   const savedUpi = localStorage.getItem('imo_upi_id');
   if (savedUpi) CURRENT_UPI_ID = savedUpi;
   const savedBasePrice = localStorage.getItem('imo_base_price');
   if (savedBasePrice) BASE_PRICE_PER_DIAMOND = parseFloat(savedBasePrice);
+  loadPerDiamondRates();
   generateCreditPacks();
   
   function updateBasePrice(newPrice) {
     BASE_PRICE_PER_DIAMOND = newPrice;
     localStorage.setItem('imo_base_price', BASE_PRICE_PER_DIAMOND);
-    generateCreditPacks();
-    buildGrid();
-    updateUI();
     document.getElementById('currentPriceDisplay').innerText = BASE_PRICE_PER_DIAMOND;
     showToast(`✅ Price per diamond updated to ₹${BASE_PRICE_PER_DIAMOND}`);
   }
@@ -723,6 +819,7 @@
       adminLoginSection.style.display = 'none';
       adminPanelSection.style.display = 'block';
       renderAdminOrders();
+      renderPerDiamondRatesInAdmin();
       document.getElementById('adminTickerMsg').value = tickerMessages.join(' | ');
       document.getElementById('adminUpiId').value = CURRENT_UPI_ID;
       document.getElementById('adminPricePerDiamond').value = BASE_PRICE_PER_DIAMOND;
@@ -742,6 +839,7 @@
   });
   
   document.getElementById('updateUpiBtn').addEventListener('click', () => { const newUpi = document.getElementById('adminUpiId').value.trim(); updateUpiId(newUpi); });
+  document.getElementById('saveRatesBtn').addEventListener('click', () => { saveAllPerDiamondRates(); });
   document.getElementById('updatePriceBtn').addEventListener('click', () => { const newPrice = parseFloat(document.getElementById('adminPricePerDiamond').value); if (!isNaN(newPrice) && newPrice > 0) updateBasePrice(newPrice); else showToast("❌ Invalid price value"); });
   document.getElementById('updateTickerBtn').addEventListener('click', () => { const msg = document.getElementById('adminTickerMsg').value; if (msg) { tickerMessages.length = 0; tickerMessages.push(...msg.split('|').map(s => s.trim())); if (tickerMessages.length === 0) tickerMessages.push("✨ Pay0 Gateway • Fast Recharge"); showToast("Ticker updated!"); } });
   document.getElementById('toggleMaintenanceBtn').addEventListener('click', () => { settings.maintenanceMode = !settings.maintenanceMode; localStorage.setItem('imo_maintenance_mode', settings.maintenanceMode); updateMaintenanceUI(); showToast(settings.maintenanceMode ? "Maintenance mode ON" : "Maintenance mode OFF"); });
@@ -752,6 +850,7 @@
       adminLoginSection.style.display = 'none';
       adminPanelSection.style.display = 'block';
       renderAdminOrders();
+      renderPerDiamondRatesInAdmin();
       document.getElementById('adminUpiId').value = CURRENT_UPI_ID;
       document.getElementById('adminPricePerDiamond').value = BASE_PRICE_PER_DIAMOND;
       document.getElementById('currentPriceDisplay').innerText = BASE_PRICE_PER_DIAMOND;
@@ -780,7 +879,6 @@
   }, 4000);
   
   buildGrid();
-  setStepFromPack(currentQty);
   updateUI();
 </script>
 </body>
