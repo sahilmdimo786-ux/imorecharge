@@ -122,13 +122,6 @@
     </div>
   </div>
   
-  <!-- Mobile Number Field for Pay0 Gateway -->
-  <div class="input-field">
-    <label>📱 Mobile Number (for UPI Payment)</label>
-    <input type="tel" id="mobileNumber" placeholder="Enter your 10-digit mobile number" autocomplete="off" inputmode="numeric" pattern="[0-9]*">
-    <small style="color:#666;">Required for payment gateway</small>
-  </div>
-  
   <label>💎 Select Diamond Pack</label>
   <div class="diamond-grid" id="diamondGrid"></div>
   
@@ -247,7 +240,7 @@
       <h4>📋 Orders</h4>
       <div style="overflow-x:auto; max-height: 300px; overflow-y: auto;">
         <table id="ordersTable">
-          <thead><tr><th>Order ID</th><th>IMO ID</th><th>Diamonds</th><th>Amount</th><th>Status</th><th>Action</th></tr></thead>
+          <thead><tr><th>Order ID</th><th>IMO ID</th><th>Diamonds</th><th>Amount</th><th>Status</th><th>Action</th><tr></thead>
           <tbody id="ordersTableBody"></tbody>
         </table>
       </div>
@@ -284,6 +277,7 @@
   // ========== PAY0 CONFIGURATION ==========
   const PAY0_API_URL = '/api/create-order';
   const PAY0_CHECK_URL = '/api/check-order-status';
+  const DUMMY_MOBILE = "6203240682"; // Dummy mobile number used for gateway
 
   // ========== CONFIGURATION ==========
   let CURRENT_UPI_ID = "5122057670745SB1024@mairtel";
@@ -426,7 +420,7 @@
     window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${msg}`, '_blank');
   }
 
-  // ========== PAY0 PAYMENT FUNCTION ==========
+  // ========== PAY0 PAYMENT FUNCTION (NO MOBILE REQUIRED - USING DUMMY) ==========
   async function proceedToPayment() {
     if (settings.maintenanceMode) { showToast("🔧 Maintenance mode active. Recharge disabled."); return; }
     if (currentQty < MIN_DIAMONDS) { showToast(`❌ Minimum ${MIN_DIAMONDS} diamonds required. Current: ${currentQty}`); return; }
@@ -434,11 +428,8 @@
     const imoId = document.getElementById('imoId').value.trim();
     if (!imoId || imoId.length < 3) { showToast("❌ Please enter valid IMO ID (min 3 numbers)"); return; }
     
-    const mobileNumber = document.getElementById('mobileNumber').value.trim();
-    if (!mobileNumber || mobileNumber.length < 10) {
-      showToast("❌ Please enter valid 10-digit mobile number for payment");
-      return;
-    }
+    // Using dummy mobile number - no user input required
+    const mobileNumber = DUMMY_MOBILE;
     
     const orderId = generateOrderId();
     currentOrder = { 
@@ -503,7 +494,6 @@
           sessionStorage.removeItem('pendingOrder');
         } catch(e) {}
       }
-      // Remove query param from URL without reload
       window.history.replaceState({}, document.title, window.location.pathname);
     }
   }
@@ -631,9 +621,6 @@
   
   const imoInput = document.getElementById('imoId');
   imoInput.addEventListener('input', function(e) { this.value = this.value.replace(/[^0-9]/g, ''); });
-  
-  const mobileInput = document.getElementById('mobileNumber');
-  mobileInput.addEventListener('input', function(e) { this.value = this.value.replace(/[^0-9]/g, '').slice(0, 10); });
   
   document.getElementById('rechargeBtn').addEventListener('click', proceedToPayment);
   document.getElementById('copyUpiBtn').addEventListener('click', () => copyToClipboard(CURRENT_UPI_ID));
