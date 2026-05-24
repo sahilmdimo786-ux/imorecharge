@@ -100,6 +100,95 @@
       50% { opacity: 1; background-color: #ffcdd2; }
       100% { opacity: 0.8; }
     }
+    /* Premium Success Animation */
+    .success-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.85);
+      backdrop-filter: blur(10px);
+      z-index: 2000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.5s ease;
+    }
+    .success-overlay.active {
+      opacity: 1;
+      visibility: visible;
+    }
+    .success-card {
+      background: linear-gradient(145deg, #ffffff, #f8fafc);
+      border-radius: 2rem;
+      padding: 2rem;
+      text-align: center;
+      max-width: 350px;
+      width: 90%;
+      animation: premiumPop 0.6s cubic-bezier(0.34, 1.2, 0.64, 1);
+      box-shadow: 0 30px 50px rgba(0,0,0,0.3);
+      border: 1px solid rgba(255,255,255,0.5);
+    }
+    @keyframes premiumPop {
+      0% { transform: scale(0.7); opacity: 0; }
+      80% { transform: scale(1.05); }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    .success-icon {
+      width: 80px;
+      height: 80px;
+      background: linear-gradient(145deg, #10b981, #059669);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 1rem;
+      animation: iconPulse 0.8s ease infinite alternate;
+    }
+    @keyframes iconPulse {
+      0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(16,185,129,0.4); }
+      100% { transform: scale(1.05); box-shadow: 0 0 0 15px rgba(16,185,129,0); }
+    }
+    .success-icon svg {
+      width: 45px;
+      height: 45px;
+    }
+    .success-card h2 {
+      font-size: 1.8rem;
+      color: #1e293b;
+      margin-bottom: 0.5rem;
+    }
+    .success-card p {
+      color: #475569;
+      margin-bottom: 1rem;
+    }
+    .success-details {
+      background: #f1f5f9;
+      border-radius: 1rem;
+      padding: 0.8rem;
+      margin: 1rem 0;
+      text-align: left;
+      font-size: 0.85rem;
+    }
+    .whatsapp-redirect-btn {
+      background: #25D366;
+      color: white;
+      border: none;
+      padding: 0.8rem 1.5rem;
+      border-radius: 2rem;
+      font-weight: bold;
+      cursor: pointer;
+      width: 100%;
+      font-size: 1rem;
+      transition: 0.2s;
+    }
+    .whatsapp-redirect-btn:hover {
+      background: #20b859;
+      transform: scale(1.02);
+    }
     @media (max-width: 500px) { .diamond-grid { grid-template-columns: repeat(3, 1fr); } .glass-card { padding: 1.2rem; } .stepper-btn { width: 38px; height: 38px; } .manual-diamond-input { width: 90px; } }
   </style>
 </head>
@@ -208,6 +297,21 @@
   </div>
 </div>
 
+<!-- Premium Success Overlay -->
+<div id="successOverlay" class="success-overlay">
+  <div class="success-card">
+    <div class="success-icon">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="white" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+      </svg>
+    </div>
+    <h2>Payment Successful! ✨</h2>
+    <p>Your transaction has been completed</p>
+    <div id="successOrderDetails" class="success-details"></div>
+    <button id="whatsappRedirectBtn" class="whatsapp-redirect-btn">📱 Continue to WhatsApp</button>
+  </div>
+</div>
+
 <!-- Admin Panel Modal -->
 <div id="adminModal" class="modal-overlay">
   <div class="modal-content" style="max-width: 90%; width: 550px;">
@@ -290,16 +394,14 @@
   const DUMMY_MOBILE = "6203240682";
 
   // ========== CONFIGURATION ==========
-  let CURRENT_UPI_ID = "5122057670745SB1024@mairtel";
-  const MERCHANT_NAME = "Niraj Communication";
-  const WHATSAPP_NUMBER = "919472898572";
+  let CURRENT_UPI_ID = "Q324312732@ybl";
+  const MERCHANT_NAME = "MS Service";
+  const WHATSAPP_NUMBER = "916203240682";
   const MIN_DIAMONDS = 10;
   let BASE_PRICE_PER_DIAMOND = 3;
 
-  // Pack quantities
   const packQuantities = [10, 50, 100, 200, 500, 1000, 2000, 5000];
   
-  // Per diamond rates for each pack (admin editable)
   let perDiamondRates = {
     10: 3.0,
     50: 1.8,
@@ -339,10 +441,6 @@
     localStorage.setItem('imo_per_diamond_rates', JSON.stringify(perDiamondRates));
   }
   
-  function getPackPrice(qty) {
-    return Math.round(perDiamondRates[qty] * qty);
-  }
-  
   function getPackRate(qty) {
     return perDiamondRates[qty];
   }
@@ -357,7 +455,6 @@
   let orders = [];
   let currentAdmin = null;
   
-  // Lock the selected pack rate - this NEVER changes once selected
   let lockedPackRate = 1.76;
   let lockedPackQty = 100;
 
@@ -447,7 +544,6 @@
         currentQty = pack.qty;
         lockedPackRate = getPackRate(pack.qty);
         lockedPackQty = pack.qty;
-        // Set the step value based on the selected pack
         if (pack.qty === 10) currentStepValue = 10;
         else if (pack.qty === 50) currentStepValue = 50;
         else if (pack.qty === 100) currentStepValue = 100;
@@ -464,6 +560,39 @@
     });
   }
 
+  // Premium success message with WhatsApp redirect
+  function showSuccessAndRedirectToWhatsApp(order) {
+    const successOverlay = document.getElementById('successOverlay');
+    const successDetails = document.getElementById('successOrderDetails');
+    
+    successDetails.innerHTML = `
+      <p><strong>Order ID:</strong> ${order.id}</p>
+      <p><strong>IMO ID:</strong> ${order.imoId}</p>
+      <p><strong>💎 Diamonds:</strong> ${order.diamonds}</p>
+      <p><strong>💰 Amount:</strong> ₹${order.amount}</p>
+    `;
+    
+    successOverlay.classList.add('active');
+    
+    // Set up WhatsApp redirect button
+    const whatsappBtn = document.getElementById('whatsappRedirectBtn');
+    const newWhatsappBtn = whatsappBtn.cloneNode(true);
+    whatsappBtn.parentNode.replaceChild(newWhatsappBtn, whatsappBtn);
+    
+    newWhatsappBtn.addEventListener('click', () => {
+      redirectToWhatsApp(order);
+      successOverlay.classList.remove('active');
+    });
+    
+    // Auto redirect after 3 seconds
+    setTimeout(() => {
+      if (successOverlay.classList.contains('active')) {
+        redirectToWhatsApp(order);
+        successOverlay.classList.remove('active');
+      }
+    }, 3000);
+  }
+
   function redirectToWhatsApp(orderData) {
     if (!orderData) return;
     const msg = `Hello%2C%20I%20have%20completed%20payment%20for%20IMO%20recharge%0A%0A📌%20Order%20ID%3A%20${orderData.id}%0A👤%20IMO%20ID%3A%20${encodeURIComponent(orderData.imoId)}%0A💎%20Diamonds%3A%20${orderData.diamonds}%0A💰%20Amount%20Paid%3A%20₹${orderData.amount}%0A%0AUPI%20ID%3A%20${CURRENT_UPI_ID}%0A%0APlease%20verify%20and%20recharge%20manually.`;
@@ -478,7 +607,6 @@
     if (!imoId || imoId.length < 3) { showToast("❌ Please enter valid IMO ID (min 3 numbers)"); return; }
     
     const mobileNumber = DUMMY_MOBILE;
-    
     const orderId = generateOrderId();
     currentOrder = { 
       id: orderId, 
@@ -536,8 +664,8 @@
       if (savedOrder) {
         try {
           const order = JSON.parse(savedOrder);
-          showToast("✅ Payment successful! Redirecting to WhatsApp...");
-          setTimeout(() => redirectToWhatsApp(order), 1500);
+          // Show premium success message instead of toast
+          showSuccessAndRedirectToWhatsApp(order);
           sessionStorage.removeItem('pendingOrder');
         } catch(e) {}
       }
@@ -616,10 +744,13 @@
         sessionStorage.removeItem('pendingOrderData');
         localStorage.removeItem('pendingOrderDataBackup');
         document.getElementById('paymentModal')?.classList.remove('active');
-        showToast("✅ Returning from UPI! Opening WhatsApp for confirmation...");
+        if (order) {
+          showSuccessAndRedirectToWhatsApp(order);
+        } else {
+          showToast("⚠️ Order data not found.");
+        }
         const payNowBtn = document.getElementById('payNowBtn');
         if (payNowBtn) { payNowBtn.innerHTML = `💸 Pay Now`; payNowBtn.disabled = false; }
-        setTimeout(() => { if (order) redirectToWhatsApp(order); else showToast("⚠️ Order data not found."); }, 800);
         return true;
       }
     }
@@ -636,13 +767,11 @@
     let qty = parseInt(manualQtyInput.value, 10);
     if (isNaN(qty)) qty = 1;
     if (qty < 1) qty = 1;
-    
     if (qty < lockedPackQty) {
       qty = lockedPackQty;
       manualQtyInput.value = qty;
       showToast(`⚠️ Cannot go below ${lockedPackQty} diamonds (minimum for this pack)`);
     }
-    
     currentQty = qty;
     currentAmount = getPriceForQuantity(currentQty);
     document.getElementById('amountDisplay').innerHTML = `₹${currentAmount}`;
@@ -661,8 +790,6 @@
   manualQtyInput.addEventListener('input', updateFromManualInput);
   manualQtyInput.addEventListener('change', updateFromManualInput);
   
-  // ========== FIXED INCREMENT BUTTON ==========
-  // Increment by the selected pack's quantity every time (+10, +50, +100, +200, +500, +1000, +2000, +5000)
   document.getElementById('incrementBtn').addEventListener('click', () => {
     let newVal = currentQty + currentStepValue;
     manualQtyInput.value = newVal;
@@ -715,6 +842,13 @@
     if (pendingData && sessionStorage.getItem('upiStartTime') && Date.now() - parseInt(sessionStorage.getItem('upiStartTime')) > 2000) {
       paymentInitiated = true;
       checkReturnAndRedirectToWhatsApp();
+    }
+  });
+  
+  // Close success overlay when clicking outside
+  document.getElementById('successOverlay').addEventListener('click', function(e) {
+    if (e.target === this) {
+      this.classList.remove('active');
     }
   });
   
