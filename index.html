@@ -254,7 +254,7 @@
       <div style="background:#eef2ff; padding:0.8rem; border-radius:1rem; margin-bottom:1rem;"><h4>💰 Change UPI ID</h4><div class="setting-row"><input type="text" id="adminUpiId" placeholder="Enter new UPI ID" value="5122057670745SB1024@mairtel"><button id="updateUpiBtn" class="btn-primary">Update UPI ID</button></div></div>
       <div style="background:#eef2ff; padding:0.8rem; border-radius:1rem; margin-bottom:1rem;"><h4>💎 Per Diamond Cost (Set Rate per Diamond)</h4><div id="perDiamondRatesContainer"></div><button id="saveRatesBtn" class="btn-primary">💾 Save Per Diamond Rates</button><small>Pack price = Per Diamond Rate × Quantity (Saved to Firebase - visible to all users)</small></div>
       <div style="background:#eef2ff; padding:0.8rem; border-radius:1rem; margin-bottom:1rem;"><h4>💰 Price per Diamond (Base Rate)</h4><div class="setting-row"><input type="number" id="adminPricePerDiamond" step="0.5" value="3"><button id="updatePriceBtn" class="btn-primary">Update Rate</button></div></div>
-      <h4>📋 Orders</h4><div style="overflow-x:auto; max-height: 300px;"><table id="ordersTable"><thead><tr><th>Order ID</th><th>IMO ID</th><th>Diamonds</th><th>Amount</th><th>Status</th><th>Action</th></tr></thead><tbody id="ordersTableBody"></tbody><tr></div>
+      <h4>📋 Orders</h4><div style="overflow-x:auto; max-height: 300px;"><table id="ordersTable"><thead><tr><th>Order ID</th><th>IMO ID</th><th>Diamonds</th><th>Amount</th><th>Status</th><th>Action</th></tr></thead><tbody id="ordersTableBody"></tbody></table></div>
       <div style="margin-top:1rem;"><label>📢 Ticker Message</label><input type="text" id="adminTickerMsg"><button id="updateTickerBtn" class="btn-primary">Update Ticker</button></div>
       <button id="toggleMaintenanceBtn" class="btn-secondary">Toggle Maintenance</button>
     </div>
@@ -300,7 +300,7 @@
     for (let qty of packQuantities) creditPacks.push({ qty: qty, price: Math.round(perDiamondRates[qty] * qty) });
   }
 
-  // Firebase Realtime Database - Load and Sync Prices (ALL USERS see same prices)
+  // Firebase Realtime Database - Load and Sync Prices
   let isFirstLoad = true;
   function loadPricesFromFirebase() {
     const ratesRef = db.ref('perDiamondRates');
@@ -344,7 +344,11 @@
   let currentAdmin = null;
   let lockedPackRate = 1.76;
   let lockedPackQty = 100;
-  let paymentCheckInterval = null;
+  
+  // ========== POLLING VARIABLES ==========
+  let statusPollingInterval = null;
+  let pollingAttempts = 0;
+  const MAX_POLLING_ATTEMPTS = 20; // 20 attempts * 3 seconds = 60 seconds
 
   function showToast(msg) { let t = document.querySelector('.toast'); if(t) t.remove(); const div = document.createElement('div'); div.className = 'toast'; div.innerText = msg; document.body.appendChild(div); setTimeout(() => div.remove(), 3000); }
 
@@ -419,6 +423,55 @@
     window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${msg}`, '_blank');
   }
 
+  // ========== POLLING FUNCTION - Checks payment status repeatedly ==========
+  function startPollingOrderStatus(orderId, orderData) {
+    if (statusPollingInterval) {
+      clearInterval(statusPollingInterval);
+      statusPollingInterval = null;
+    }
+    
+    pollingAttempts = 0;
+    showToast("⏳ Processing payment... Checking status");
+    
+    statusPollingInterval = setInterval(async () => {
+      pollingAttempts++;
+      
+      try {
+        const response = await fetch(PAY0_CHECK_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ order_id: orderId })
+        });
+        
+        const data = await response.json();
+        console.log(`Polling attempt ${pollingAttempts}:`, data);
+        
+        if (data.status === 'COMPLETED') {
+          clearInterval(statusPollingInterval);
+          statusPollingInterval = null;
+          showSuccessAndRedirectToWhatsApp(orderData);
+        } else if (pollingAttempts >= MAX_POLLING_ATTEMPTS) {
+          clearInterval(statusPollingInterval);
+          statusPollingInterval = null;
+          showToast("⚠️ Payment status check timeout. Please contact support with your Order ID: " + orderId);
+        }
+      } catch (error) {
+        console.error('Polling error:', error);
+        if (pollingAttempts >= MAX_POLLING_ATTEMPTS) {
+          clearInterval(statusPollingInterval);
+          statusPollingInterval = null;
+        }
+      }
+    }, 3000);
+  }
+
+  function stopPolling() {
+    if (statusPollingInterval) {
+      clearInterval(statusPollingInterval);
+      statusPollingInterval = null;
+    }
+  }
+
   async function proceedToPayment() {
     if (settings.maintenanceMode) { showToast("🔧 Maintenance mode active."); return; }
     if (currentQty < MIN_DIAMONDS) { showToast(`❌ Minimum ${MIN_DIAMONDS} diamonds required.`); return; }
@@ -434,23 +487,29 @@
     try {
       const response = await fetch(PAY0_API_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ customer_mobile: DUMMY_MOBILE, customer_name: "Customer", amount: currentAmount, order_id: orderId, redirect_url: window.location.origin + '/payment-callback' }) });
       const data = await response.json();
-      if (data.status === true && data.result && data.result.payment_url) { sessionStorage.setItem('pendingOrder', JSON.stringify(currentOrder)); window.location.href = data.result.payment_url; }
+      if (data.status === true && data.result && data.result.payment_url) { 
+        sessionStorage.setItem('pendingOrder', JSON.stringify(currentOrder));
+        // Start polling immediately after redirecting to payment gateway
+        startPollingOrderStatus(orderId, currentOrder);
+        window.location.href = data.result.payment_url; 
+      }
       else { showToast("Payment Error: " + (data.message || "Unknown error")); rechargeBtn.disabled = false; rechargeBtn.innerHTML = "🚀 Proceed to Pay"; }
     } catch (error) { showToast("Network Error"); rechargeBtn.disabled = false; rechargeBtn.innerHTML = "🚀 Proceed to Pay"; }
   }
 
   function showSuccessAndRedirectToWhatsApp(order) {
+    // Stop polling if still active
+    stopPolling();
+    
     document.getElementById('successOrderDetails').innerHTML = `<p><strong>Order ID:</strong> ${order.id}</p><p><strong>IMO ID:</strong> ${order.imoId}</p><p><strong>💎 Diamonds:</strong> ${order.diamonds}</p><p><strong>💰 Amount:</strong> ₹${order.amount}</p>`;
     document.getElementById('successOverlay').classList.add('active');
     const btn = document.getElementById('whatsappRedirectBtn');
     const newBtn = btn.cloneNode(true);
     btn.parentNode.replaceChild(newBtn, btn);
     newBtn.addEventListener('click', () => { redirectToWhatsApp(order); document.getElementById('successOverlay').classList.remove('active'); });
-    // Auto redirect after 3 seconds
     setTimeout(() => { if (document.getElementById('successOverlay').classList.contains('active')) { redirectToWhatsApp(order); document.getElementById('successOverlay').classList.remove('active'); } }, 3000);
   }
 
-  // FIXED: Check payment success with both URL parameter and polling
   function checkPaymentSuccess() {
     const urlParams = new URLSearchParams(window.location.search);
     const paymentSuccess = urlParams.get('payment_success');
@@ -465,21 +524,6 @@
       }
       window.history.replaceState({}, document.title, window.location.pathname);
       return true;
-    }
-    
-    // Additional: Check for any pending payment on page load
-    const pendingOrderData = sessionStorage.getItem('pendingOrderData') || localStorage.getItem('pendingOrderDataBackup');
-    if (pendingOrderData && !paymentSuccess) {
-      try {
-        const order = JSON.parse(pendingOrderData);
-        const startTime = sessionStorage.getItem('upiStartTime');
-        if (startTime && Date.now() - parseInt(startTime) > 5000) {
-          showSuccessAndRedirectToWhatsApp(order);
-          sessionStorage.removeItem('pendingOrderData');
-          localStorage.removeItem('pendingOrderDataBackup');
-          return true;
-        }
-      } catch(e) {}
     }
     return false;
   }
@@ -501,24 +545,6 @@
     const isAndroid = /Android/i.test(navigator.userAgent);
     if (isAndroid) { window.location.href = `intent://pay?${upiLink.split("?")[1]}#Intent;scheme=upi;end`; }
     else { window.location.href = upiLink; }
-    
-    // Start checking for return after 5 seconds (payment gateway might not redirect properly)
-    setTimeout(() => {
-      if (paymentInitiated && !paymentCompleted) {
-        const pendingData = sessionStorage.getItem('pendingOrderData');
-        if (pendingData) {
-          try {
-            const order = JSON.parse(pendingData);
-            // Show success message anyway (user likely completed payment)
-            showSuccessAndRedirectToWhatsApp(order);
-            paymentInitiated = false;
-            paymentCompleted = true;
-            if (payNowBtn) { payNowBtn.innerHTML = originalText; payNowBtn.disabled = false; }
-          } catch(e) {}
-        }
-      }
-    }, 8000);
-    
     setTimeout(() => {
       if (paymentInitiated && !paymentCompleted) {
         paymentInitiated = false;
