@@ -254,7 +254,7 @@
       <div style="background:#eef2ff; padding:0.8rem; border-radius:1rem; margin-bottom:1rem;"><h4>💰 Change UPI ID</h4><div class="setting-row"><input type="text" id="adminUpiId" placeholder="Enter new UPI ID" value="5122057670745SB1024@mairtel"><button id="updateUpiBtn" class="btn-primary">Update UPI ID</button></div></div>
       <div style="background:#eef2ff; padding:0.8rem; border-radius:1rem; margin-bottom:1rem;"><h4>💎 Per Diamond Cost (Set Rate per Diamond)</h4><div id="perDiamondRatesContainer"></div><button id="saveRatesBtn" class="btn-primary">💾 Save Per Diamond Rates</button><small>Pack price = Per Diamond Rate × Quantity (Saved to Firebase - visible to all users)</small></div>
       <div style="background:#eef2ff; padding:0.8rem; border-radius:1rem; margin-bottom:1rem;"><h4>💰 Price per Diamond (Base Rate)</h4><div class="setting-row"><input type="number" id="adminPricePerDiamond" step="0.5" value="3"><button id="updatePriceBtn" class="btn-primary">Update Rate</button></div></div>
-      <h4>📋 Orders</h4><div style="overflow-x:auto; max-height: 300px;"><table id="ordersTable"><thead><tr><th>Order ID</th><th>IMO ID</th><th>Diamonds</th><th>Amount</th><th>Status</th><th>Action</th></tr></thead><tbody id="ordersTableBody"></tbody></table></div>
+      <h4>📋 Orders</h4><div style="overflow-x:auto; max-height: 300px;"><table id="ordersTable"><thead><tr><th>Order ID</th><th>IMO ID</th><th>Diamonds</th><th>Amount</th><th>Status</th><th>Action</th></tr></thead><tbody id="ordersTableBody"></tbody><tr></div>
       <div style="margin-top:1rem;"><label>📢 Ticker Message</label><input type="text" id="adminTickerMsg"><button id="updateTickerBtn" class="btn-primary">Update Ticker</button></div>
       <button id="toggleMaintenanceBtn" class="btn-secondary">Toggle Maintenance</button>
     </div>
@@ -300,22 +300,28 @@
     for (let qty of packQuantities) creditPacks.push({ qty: qty, price: Math.round(perDiamondRates[qty] * qty) });
   }
 
-  // Firebase Realtime Database - Load and Sync Prices
+  // Firebase Realtime Database - Load and Sync Prices (ALL USERS see same prices)
+  let isFirstLoad = true;
   function loadPricesFromFirebase() {
     const ratesRef = db.ref('perDiamondRates');
     ratesRef.on('value', (snapshot) => {
       const data = snapshot.val();
       if (data) {
+        let changed = false;
         for (let qty of packQuantities) {
-          if (data[qty] !== undefined && !isNaN(data[qty]) && data[qty] > 0) {
+          if (data[qty] !== undefined && !isNaN(data[qty]) && data[qty] > 0 && perDiamondRates[qty] !== data[qty]) {
             perDiamondRates[qty] = data[qty];
+            changed = true;
           }
         }
-        generateCreditPacks();
-        buildGrid();
-        lockedPackRate = getPackRate(lockedPackQty);
-        updateUI();
-        showToast("💰 Prices updated from server!");
+        if (changed || isFirstLoad) {
+          generateCreditPacks();
+          buildGrid();
+          lockedPackRate = getPackRate(lockedPackQty);
+          updateUI();
+          if (!isFirstLoad) showToast("💰 Prices updated from server!");
+          isFirstLoad = false;
+        }
       }
     });
   }
@@ -338,6 +344,7 @@
   let currentAdmin = null;
   let lockedPackRate = 1.76;
   let lockedPackQty = 100;
+  let paymentCheckInterval = null;
 
   function showToast(msg) { let t = document.querySelector('.toast'); if(t) t.remove(); const div = document.createElement('div'); div.className = 'toast'; div.innerText = msg; document.body.appendChild(div); setTimeout(() => div.remove(), 3000); }
 
@@ -439,16 +446,42 @@
     const newBtn = btn.cloneNode(true);
     btn.parentNode.replaceChild(newBtn, btn);
     newBtn.addEventListener('click', () => { redirectToWhatsApp(order); document.getElementById('successOverlay').classList.remove('active'); });
+    // Auto redirect after 3 seconds
     setTimeout(() => { if (document.getElementById('successOverlay').classList.contains('active')) { redirectToWhatsApp(order); document.getElementById('successOverlay').classList.remove('active'); } }, 3000);
   }
 
+  // FIXED: Check payment success with both URL parameter and polling
   function checkPaymentSuccess() {
     const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('payment_success')) {
+    const paymentSuccess = urlParams.get('payment_success');
+    const orderIdFromUrl = urlParams.get('order_id');
+    
+    if (paymentSuccess || orderIdFromUrl) {
       const savedOrder = sessionStorage.getItem('pendingOrder');
-      if (savedOrder) { try { const order = JSON.parse(savedOrder); showSuccessAndRedirectToWhatsApp(order); sessionStorage.removeItem('pendingOrder'); } catch(e) {} }
+      if (savedOrder) {
+        try { const order = JSON.parse(savedOrder); showSuccessAndRedirectToWhatsApp(order); sessionStorage.removeItem('pendingOrder'); } catch(e) {}
+      } else if (currentOrder) {
+        showSuccessAndRedirectToWhatsApp(currentOrder);
+      }
       window.history.replaceState({}, document.title, window.location.pathname);
+      return true;
     }
+    
+    // Additional: Check for any pending payment on page load
+    const pendingOrderData = sessionStorage.getItem('pendingOrderData') || localStorage.getItem('pendingOrderDataBackup');
+    if (pendingOrderData && !paymentSuccess) {
+      try {
+        const order = JSON.parse(pendingOrderData);
+        const startTime = sessionStorage.getItem('upiStartTime');
+        if (startTime && Date.now() - parseInt(startTime) > 5000) {
+          showSuccessAndRedirectToWhatsApp(order);
+          sessionStorage.removeItem('pendingOrderData');
+          localStorage.removeItem('pendingOrderDataBackup');
+          return true;
+        }
+      } catch(e) {}
+    }
+    return false;
   }
 
   function openUpiPayment() {
@@ -468,7 +501,31 @@
     const isAndroid = /Android/i.test(navigator.userAgent);
     if (isAndroid) { window.location.href = `intent://pay?${upiLink.split("?")[1]}#Intent;scheme=upi;end`; }
     else { window.location.href = upiLink; }
-    setTimeout(() => { if (paymentInitiated && !paymentCompleted) { paymentInitiated = false; payNowBtn.innerHTML = originalText; payNowBtn.disabled = false; } }, 60000);
+    
+    // Start checking for return after 5 seconds (payment gateway might not redirect properly)
+    setTimeout(() => {
+      if (paymentInitiated && !paymentCompleted) {
+        const pendingData = sessionStorage.getItem('pendingOrderData');
+        if (pendingData) {
+          try {
+            const order = JSON.parse(pendingData);
+            // Show success message anyway (user likely completed payment)
+            showSuccessAndRedirectToWhatsApp(order);
+            paymentInitiated = false;
+            paymentCompleted = true;
+            if (payNowBtn) { payNowBtn.innerHTML = originalText; payNowBtn.disabled = false; }
+          } catch(e) {}
+        }
+      }
+    }, 8000);
+    
+    setTimeout(() => {
+      if (paymentInitiated && !paymentCompleted) {
+        paymentInitiated = false;
+        payNowBtn.innerHTML = originalText;
+        payNowBtn.disabled = false;
+      }
+    }, 60000);
   }
 
   function generateUpiLink(amount) {
@@ -538,7 +595,17 @@
   document.addEventListener('visibilitychange', () => { if (!document.hidden && paymentInitiated) checkReturnAndRedirectToWhatsApp(); });
   window.addEventListener('focus', () => { if (paymentInitiated) checkReturnAndRedirectToWhatsApp(); });
   window.addEventListener('pageshow', () => { if (paymentInitiated) checkReturnAndRedirectToWhatsApp(); });
-  window.addEventListener('load', () => { checkPaymentSuccess(); const pendingData = sessionStorage.getItem('pendingOrderData') || localStorage.getItem('pendingOrderDataBackup'); if (pendingData && sessionStorage.getItem('upiStartTime') && Date.now() - parseInt(sessionStorage.getItem('upiStartTime')) > 2000) { paymentInitiated = true; checkReturnAndRedirectToWhatsApp(); } });
+  
+  window.addEventListener('load', () => {
+    const successShown = checkPaymentSuccess();
+    if (!successShown) {
+      const pendingData = sessionStorage.getItem('pendingOrderData') || localStorage.getItem('pendingOrderDataBackup');
+      if (pendingData && sessionStorage.getItem('upiStartTime') && Date.now() - parseInt(sessionStorage.getItem('upiStartTime')) > 2000) {
+        paymentInitiated = true;
+        checkReturnAndRedirectToWhatsApp();
+      }
+    }
+  });
   document.getElementById('successOverlay').addEventListener('click', function(e) { if (e.target === this) this.classList.remove('active'); });
 
   function renderAdminOrders() {
