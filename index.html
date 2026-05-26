@@ -155,12 +155,26 @@
     .success-card p { color: #475569; margin-bottom: 1rem; }
     .success-details { background: #f1f5f9; border-radius: 1rem; padding: 0.8rem; margin: 1rem 0; text-align: left; font-size: 0.85rem; }
     .whatsapp-redirect-btn { background: #25D366; color: white; border: none; padding: 0.8rem 1.5rem; border-radius: 2rem; font-weight: bold; cursor: pointer; width: 100%; font-size: 1rem; transition: 0.2s; }
+    .status-polling {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,0.8);
+      color: white;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 12px;
+      z-index: 1000;
+      display: none;
+    }
     @media (max-width: 500px) { .diamond-grid { grid-template-columns: repeat(3, 1fr); } .glass-card { padding: 1.2rem; } .stepper-btn { width: 38px; height: 38px; } .manual-diamond-input { width: 90px; } }
   </style>
 </head>
 <body>
 
 <div class="admin-badge" id="adminToggleBtn">🔐 Admin Panel</div>
+<div class="status-polling" id="statusPollingBar">⏳ Checking payment status...</div>
 
 <div class="glass-card">
   <div id="maintenanceAlert" style="display: none;" class="maintenance-alert">
@@ -345,10 +359,124 @@
   let lockedPackRate = 1.76;
   let lockedPackQty = 100;
   
-  // ========== POLLING VARIABLES ==========
+  // ========== POLLING FUNCTIONALITY (ADDED) ==========
   let statusPollingInterval = null;
+  let currentPollingOrderId = null;
   let pollingAttempts = 0;
-  const MAX_POLLING_ATTEMPTS = 20; // 20 attempts * 3 seconds = 60 seconds
+  const MAX_POLLING_ATTEMPTS = 60; // 60 attempts * 3 seconds = 3 minutes max
+  const POLLING_INTERVAL_MS = 3000; // Check every 3 seconds
+
+  function showPollingStatus(show, message = "⏳ Checking payment status...") {
+    const pollingBar = document.getElementById('statusPollingBar');
+    if (pollingBar) {
+      if (show) {
+        pollingBar.style.display = 'block';
+        pollingBar.innerHTML = message;
+      } else {
+        pollingBar.style.display = 'none';
+      }
+    }
+  }
+
+  function stopPolling() {
+    if (statusPollingInterval) {
+      clearInterval(statusPollingInterval);
+      statusPollingInterval = null;
+    }
+    currentPollingOrderId = null;
+    pollingAttempts = 0;
+    showPollingStatus(false);
+    console.log('[POLLING] Stopped');
+  }
+
+  async function checkPaymentStatus(orderId, orderData) {
+    try {
+      const response = await fetch(PAY0_CHECK_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ order_id: orderId })
+      });
+      
+      const data = await response.json();
+      console.log(`[POLLING] Attempt ${pollingAttempts}/${MAX_POLLING_ATTEMPTS} for ${orderId}:`, data);
+      
+      // Update polling status message
+      showPollingStatus(true, `⏳ Checking payment... (${pollingAttempts}/${MAX_POLLING_ATTEMPTS})`);
+      
+      // Check for successful payment - looking for various success indicators
+      const isSuccess = 
+        (data.status === 'COMPLETED') ||
+        (data.status === 'SUCCESS') ||
+        (data.status === true && data.result?.txnStatus === 'SUCCESS') ||
+        (data.result?.status === 'success') ||
+        (data.payment_status === 'success');
+      
+      if (isSuccess) {
+        console.log(`[POLLING] ✅ Payment SUCCESS for ${orderId}!`);
+        stopPolling();
+        if (orderData) {
+          showSuccessAndRedirectToWhatsApp(orderData);
+        } else if (currentOrder) {
+          showSuccessAndRedirectToWhatsApp(currentOrder);
+        }
+        return true;
+      }
+      
+      // Check for failed payment
+      const isFailed = 
+        (data.status === 'FAILED') ||
+        (data.result?.txnStatus === 'FAILED') ||
+        (data.payment_status === 'failed');
+      
+      if (isFailed) {
+        console.log(`[POLLING] ❌ Payment FAILED for ${orderId}`);
+        stopPolling();
+        showToast("❌ Payment failed. Please try again.");
+        return false;
+      }
+      
+      return null; // Still pending
+      
+    } catch (error) {
+      console.error('[POLLING] Error checking status:', error);
+      return null; // Still pending on error
+    }
+  }
+
+  function startPollingOrderStatus(orderId, orderData) {
+    stopPolling(); // Clear any existing polling
+    
+    currentPollingOrderId = orderId;
+    pollingAttempts = 0;
+    showPollingStatus(true, "⏳ Payment initiated. Verifying transaction...");
+    
+    console.log(`[POLLING] Started for order: ${orderId}`);
+    
+    statusPollingInterval = setInterval(async () => {
+      pollingAttempts++;
+      
+      // Stop if we've exceeded max attempts
+      if (pollingAttempts >= MAX_POLLING_ATTEMPTS) {
+        console.log(`[POLLING] Timeout after ${MAX_POLLING_ATTEMPTS} attempts for ${orderId}`);
+        stopPolling();
+        showToast("⚠️ Payment verification timeout. Please contact support with your Order ID: " + orderId);
+        return;
+      }
+      
+      const result = await checkPaymentStatus(orderId, orderData);
+      
+      // If result is true (success) or false (failed), polling already stopped inside function
+      if (result === true || result === false) {
+        // Polling already stopped
+        return;
+      }
+      
+      // If we get here, still pending - continue polling
+      
+    }, POLLING_INTERVAL_MS);
+  }
+
+  // ========== END POLLING FUNCTIONALITY ==========
 
   function showToast(msg) { let t = document.querySelector('.toast'); if(t) t.remove(); const div = document.createElement('div'); div.className = 'toast'; div.innerText = msg; document.body.appendChild(div); setTimeout(() => div.remove(), 3000); }
 
@@ -421,55 +549,6 @@
     if (!orderData) return;
     const msg = `Hello%2C%20I%20have%20completed%20payment%20for%20IMO%20recharge%0A%0A📌%20Order%20ID%3A%20${orderData.id}%0A👤%20IMO%20ID%3A%20${encodeURIComponent(orderData.imoId)}%0A💎%20Diamonds%3A%20${orderData.diamonds}%0A💰%20Amount%20Paid%3A%20₹${orderData.amount}%0A%0AUPI%20ID%3A%20${CURRENT_UPI_ID}%0A%0APlease%20verify%20and%20recharge%20manually.`;
     window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${msg}`, '_blank');
-  }
-
-  // ========== POLLING FUNCTION - Checks payment status repeatedly ==========
-  function startPollingOrderStatus(orderId, orderData) {
-    if (statusPollingInterval) {
-      clearInterval(statusPollingInterval);
-      statusPollingInterval = null;
-    }
-    
-    pollingAttempts = 0;
-    showToast("⏳ Processing payment... Checking status");
-    
-    statusPollingInterval = setInterval(async () => {
-      pollingAttempts++;
-      
-      try {
-        const response = await fetch(PAY0_CHECK_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ order_id: orderId })
-        });
-        
-        const data = await response.json();
-        console.log(`Polling attempt ${pollingAttempts}:`, data);
-        
-        if (data.status === 'COMPLETED') {
-          clearInterval(statusPollingInterval);
-          statusPollingInterval = null;
-          showSuccessAndRedirectToWhatsApp(orderData);
-        } else if (pollingAttempts >= MAX_POLLING_ATTEMPTS) {
-          clearInterval(statusPollingInterval);
-          statusPollingInterval = null;
-          showToast("⚠️ Payment status check timeout. Please contact support with your Order ID: " + orderId);
-        }
-      } catch (error) {
-        console.error('Polling error:', error);
-        if (pollingAttempts >= MAX_POLLING_ATTEMPTS) {
-          clearInterval(statusPollingInterval);
-          statusPollingInterval = null;
-        }
-      }
-    }, 3000);
-  }
-
-  function stopPolling() {
-    if (statusPollingInterval) {
-      clearInterval(statusPollingInterval);
-      statusPollingInterval = null;
-    }
   }
 
   async function proceedToPayment() {
