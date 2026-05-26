@@ -92,7 +92,7 @@ app.post('/api/create-order', async (req, res) => {
             user_token: PAY0_API_KEY,
             amount: amount.toString(),
             order_id: order_id,
-            redirect_url: redirect_url || `${req.protocol}://${req.get('host')}/payment-callback`,
+            redirect_url: redirect_url || 'https://v6anbir3.up.railway.app/payment-callback',
             remark1: 'IMO Recharge',
             remark2: order_id
         };
