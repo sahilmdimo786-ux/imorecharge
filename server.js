@@ -3,18 +3,32 @@ const cors = require('cors');
 const path = require('path');
 const https = require('https');
 const http = require('http');
+const fs = require('fs');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// ========== MIDDLEWARE ==========
 app.use(cors());
-app.use(express.json());
+
+// IMPORTANT: Setup raw body parsing for webhook signature verification
+app.use(express.json({
+    verify: (req, res, buf) => {
+        req.rawBody = buf;
+    }
+}));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static('.'));
 
+// ========== CONFIGURATION ==========
 const PAY0_API_URL = 'https://pay0.shop/api/create-order';
 const PAY0_CHECK_ORDER_URL = 'https://pay0.shop/api/check-order-status';
 const PAY0_API_KEY = 'f112200bfde077dca7e44302f88c5423';
+
+// Webhook log file
+const WEBHOOK_LOG_FILE = 'webhook_payments.log';
+
+// ========== HELPER FUNCTIONS ==========
 
 // Helper function to make HTTP requests (works on all Node versions)
 function makeRequest(url, postData) {
@@ -57,6 +71,12 @@ function makeRequest(url, postData) {
     });
 }
 
+// Log webhook to file
+function logWebhook(data) {
+    const logEntry = `${new Date().toISOString()} | ${JSON.stringify(data)}\n`;
+    fs.appendFileSync(WEBHOOK_LOG_FILE, logEntry);
+}
+
 // ========== CREATE ORDER API ==========
 app.post('/api/create-order', async (req, res) => {
     try {
@@ -77,13 +97,13 @@ app.post('/api/create-order', async (req, res) => {
             remark2: order_id
         };
         
-        console.log(`Creating order: ${order_id} for ₹${amount}`);
+        console.log(`[ORDER] Creating order: ${order_id} for ₹${amount}`);
         
         const data = await makeRequest(PAY0_API_URL, postData);
-        console.log(`Pay0 response:`, data);
+        console.log(`[ORDER] Pay0 response:`, data);
         res.json(data);
     } catch (error) {
-        console.error('Create order error:', error);
+        console.error('[ORDER] Error:', error);
         res.status(500).json({ status: false, message: error.message });
     }
 });
@@ -101,35 +121,115 @@ app.post('/api/check-order-status', async (req, res) => {
             order_id: order_id
         };
         
-        console.log(`Checking status for order: ${order_id}`);
+        console.log(`[STATUS] Checking status for order: ${order_id}`);
         
         const data = await makeRequest(PAY0_CHECK_ORDER_URL, postData);
-        console.log(`Status response:`, data);
+        console.log(`[STATUS] Response:`, data);
         res.json(data);
     } catch (error) {
-        console.error('Check order status error:', error);
+        console.error('[STATUS] Error:', error);
         res.status(500).json({ status: false, message: error.message });
     }
 });
 
-// ========== WEBHOOK ENDPOINT ==========
+// ========== WEBHOOK ENDPOINT - UPDATED ==========
 app.post('/webhook', (req, res) => {
-    const { status, order_id, remark1, transaction_id, amount } = req.body;
+    // Log the raw request for debugging
     console.log(`========== WEBHOOK RECEIVED ==========`);
-    console.log(`Order ID: ${order_id}`);
-    console.log(`Status: ${status}`);
-    console.log(`Transaction ID: ${transaction_id}`);
+    console.log(`[WEBHOOK] Headers:`, req.headers);
+    console.log(`[WEBHOOK] Content-Type:`, req.headers['content-type']);
+    console.log(`[WEBHOOK] Raw Body (if available):`, req.rawBody ? req.rawBody.toString() : 'N/A');
+    
+    // Handle both JSON and form-urlencoded formats
+    const body = req.body;
+    console.log(`[WEBHOOK] Parsed Body:`, JSON.stringify(body, null, 2));
+    
+    // Extract common field names (many gateways use different naming conventions)
+    const webhookData = {
+        status: body.status || body.Status || body.payment_status || body.tx_status,
+        order_id: body.order_id || body.orderId || body.orderid || body.orderID || body.merchant_order_id,
+        transaction_id: body.transaction_id || body.transactionId || body.txnid || body.txn_id || body.transaction,
+        amount: body.amount || body.total_amount || body.paid_amount,
+        remark1: body.remark1 || body.remarks,
+        remark2: body.remark2,
+        signature: body.signature || body.hash || body.checksum,
+        raw: body
+    };
+    
+    console.log(`[WEBHOOK] Extracted Data:`);
+    console.log(`  - Order ID: ${webhookData.order_id}`);
+    console.log(`  - Status: ${webhookData.status}`);
+    console.log(`  - Transaction ID: ${webhookData.transaction_id}`);
+    console.log(`  - Amount: ${webhookData.amount}`);
     console.log(`======================================`);
-    const fs = require('fs');
-    const logEntry = `${new Date().toISOString()} | ${status} | ${order_id} | ${transaction_id}\n`;
-    fs.appendFileSync('payments.log', logEntry);
-    res.send('Webhook received');
+    
+    // Log to file for persistence
+    const logEntry = {
+        timestamp: new Date().toISOString(),
+        ...webhookData
+    };
+    logWebhook(logEntry);
+    
+    // Process based on status
+    if (webhookData.status === 'success' || webhookData.status === 'Success' || webhookData.status === 'COMPLETED') {
+        console.log(`[WEBHOOK] ✅ Payment SUCCESS for order ${webhookData.order_id}`);
+        // TODO: Update your database, grant access, send confirmation email, etc.
+    } else if (webhookData.status === 'failed' || webhookData.status === 'Failed' || webhookData.status === 'FAILED') {
+        console.log(`[WEBHOOK] ❌ Payment FAILED for order ${webhookData.order_id}`);
+        // TODO: Handle failed payment
+    } else {
+        console.log(`[WEBHOOK] ⚠️ Unknown status: ${webhookData.status} for order ${webhookData.order_id}`);
+    }
+    
+    // Always respond with 200 OK - important to acknowledge receipt
+    res.status(200).send('Webhook received successfully');
+});
+
+// ========== WEBHOOK TEST ENDPOINT (for debugging) ==========
+app.post('/webhook-test', (req, res) => {
+    console.log(`========== TEST WEBHOOK ==========`);
+    console.log(`Test webhook received:`);
+    console.log(JSON.stringify(req.body, null, 2));
+    console.log(`==================================`);
+    res.status(200).json({ 
+        status: 'success', 
+        message: 'Test webhook received. Your webhook endpoint is working correctly!' 
+    });
+});
+
+// ========== WEBHOOK LOGS ENDPOINT (view recent webhooks) ==========
+app.get('/webhook-logs', (req, res) => {
+    try {
+        if (fs.existsSync(WEBHOOK_LOG_FILE)) {
+            const logs = fs.readFileSync(WEBHOOK_LOG_FILE, 'utf8');
+            const logLines = logs.trim().split('\n').slice(-50); // Last 50 entries
+            res.json({ 
+                status: 'success', 
+                count: logLines.length,
+                logs: logLines 
+            });
+        } else {
+            res.json({ status: 'success', count: 0, logs: [] });
+        }
+    } catch (error) {
+        res.status(500).json({ status: 'error', message: error.message });
+    }
 });
 
 // ========== PAYMENT CALLBACK PAGE ==========
 app.get('/payment-callback', (req, res) => {
     const { status, order_id, transaction_id } = req.query;
+    console.log(`[CALLBACK] Payment callback: ${status} for order ${order_id}`);
     res.redirect(`/?payment_status=${status || 'pending'}&order_id=${order_id}&transaction_id=${transaction_id}`);
+});
+
+// ========== HEALTH CHECK ENDPOINT ==========
+app.get('/health', (req, res) => {
+    res.status(200).json({ 
+        status: 'healthy', 
+        timestamp: new Date().toISOString(),
+        uptime: process.uptime()
+    });
 });
 
 // ========== SERVE MAIN PAGE ==========
@@ -137,7 +237,13 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
+// ========== START SERVER ==========
 app.listen(PORT, () => {
+    console.log(`========================================`);
     console.log(`🚀 Server running on port ${PORT}`);
-    console.log(`📱 Check order status API: POST /api/check-order-status`);
+    console.log(`📡 Webhook URL: POST /webhook`);
+    console.log(`🧪 Test webhook: POST /webhook-test`);
+    console.log(`📋 View logs: GET /webhook-logs`);
+    console.log(`❤️ Health check: GET /health`);
+    console.log(`========================================`);
 });
