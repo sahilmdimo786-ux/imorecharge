@@ -24,6 +24,7 @@ app.use(express.static('.'));
 const PAY0_API_URL = 'https://pay0.shop/api/create-order';
 const PAY0_CHECK_ORDER_URL = 'https://pay0.shop/api/check-order-status';
 const PAY0_API_KEY = 'f112200bfde077dca7e44302f88c5423';
+const PAY0_WEBHOOK_SECRET = 'IvNFv8EdX531380279';
 
 // Webhook log file
 const WEBHOOK_LOG_FILE = 'webhook_payments.log';
@@ -130,6 +131,43 @@ app.post('/api/check-order-status', async (req, res) => {
         console.error('[STATUS] Error:', error);
         res.status(500).json({ status: false, message: error.message });
     }
+});
+
+// ========== OFFICIAL PAY0 WEBHOOK ENDPOINT (ADD THIS) ==========
+app.post('/wc-api/pay0-payment', (req, res) => {
+    console.log(`========== PAY0 OFFICIAL WEBHOOK RECEIVED ==========`);
+    console.log(`[WEBHOOK] Headers:`, req.headers);
+    console.log(`[WEBHOOK] Body:`, JSON.stringify(req.body, null, 2));
+    
+    // Extract webhook data (adjust field names based on what pay0 sends)
+    const body = req.body;
+    const order_id = body.order_id || body.orderId || body.orderid || body.merchant_order_id;
+    const status = body.status || body.txnStatus || body.payment_status;
+    const transaction_id = body.transaction_id || body.txnId || body.transactionId;
+    const amount = body.amount || body.paid_amount;
+    
+    console.log(`[WEBHOOK] Order: ${order_id}, Status: ${status}, TXN: ${transaction_id}, Amount: ${amount}`);
+    
+    // Log to file
+    const logEntry = `${new Date().toISOString()} | ${order_id} | ${status} | ${transaction_id} | ${amount}\n`;
+    fs.appendFileSync('pay0_webhook.log', logEntry);
+    
+    // Check if payment is successful
+    if (status === 'success' || status === 'SUCCESS' || status === 'COMPLETED' || status === 'Success') {
+        console.log(`[WEBHOOK] ✅ Payment SUCCESS for order ${order_id}`);
+        // TODO: Update your database, mark order as paid, etc.
+    } else if (status === 'failed' || status === 'FAILED' || status === 'Failed') {
+        console.log(`[WEBHOOK] ❌ Payment FAILED for order ${order_id}`);
+    } else {
+        console.log(`[WEBHOOK] ⚠️ Unknown status: ${status} for order ${order_id}`);
+    }
+    
+    // Respond with JSON as pay0.shop expects
+    res.status(200).json({ 
+        status: 'success', 
+        message: 'Webhook received successfully',
+        order_id: order_id
+    });
 });
 
 // ========== WEBHOOK ENDPOINT - UPDATED ==========
@@ -241,6 +279,7 @@ app.get('/', (req, res) => {
 app.listen(PORT, () => {
     console.log(`========================================`);
     console.log(`🚀 Server running on port ${PORT}`);
+    console.log(`📡 Pay0 Webhook: POST /wc-api/pay0-payment`);
     console.log(`📡 Webhook URL: POST /webhook`);
     console.log(`🧪 Test webhook: POST /webhook-test`);
     console.log(`📋 View logs: GET /webhook-logs`);
