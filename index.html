@@ -340,10 +340,15 @@
     });
   }
 
-  function savePricesToFirebase() {
+ function savePricesToFirebase() {
     const ratesRef = db.ref('perDiamondRates');
-    ratesRef.set(perDiamondRates).then(() => showToast("✅ Prices saved to Firebase (all users can see)")).catch(err => showToast("Error saving: " + err.message));
-  }
+    ratesRef.set(perDiamondRates)
+        .then(() => showToast("✅ Prices saved to Firebase (all users can see)"))
+        .catch(err => {
+            console.error('Firebase error details:', err);
+            showToast("Error saving: " + err.message + " - Please check if you're logged in as admin");
+        });
+}
 
   function getPackRate(qty) { return perDiamondRates[qty]; }
 
