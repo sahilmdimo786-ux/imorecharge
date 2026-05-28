@@ -93,7 +93,7 @@ app.post('/api/create-order', async (req, res) => {
             user_token: PAY0_API_KEY,
             amount: amount.toString(),
             order_id: order_id,
-            redirect_url: redirect_url || 'https://v6anbir3.up.railway.app/payment-callback',
+            redirect_url: redirect_url || 'https://imorecharge-production-456d.up.railway.app/payment-callback',
             remark1: 'IMO Recharge',
             remark2: order_id
         };
@@ -102,6 +102,13 @@ app.post('/api/create-order', async (req, res) => {
         
         const data = await makeRequest(PAY0_API_URL, postData);
         console.log(`[ORDER] Pay0 response:`, data);
+        
+        // FIX: Clean the payment_url by removing escaped slashes
+        if (data.result && data.result.payment_url) {
+            data.result.payment_url = data.result.payment_url.replace(/\\\//g, '/');
+            console.log(`[ORDER] Cleaned payment_url: ${data.result.payment_url}`);
+        }
+        
         res.json(data);
     } catch (error) {
         console.error('[ORDER] Error:', error);
@@ -133,7 +140,7 @@ app.post('/api/check-order-status', async (req, res) => {
     }
 });
 
-// ========== OFFICIAL PAY0 WEBHOOK ENDPOINT (ADD THIS) ==========
+// ========== OFFICIAL PAY0 WEBHOOK ENDPOINT ==========
 app.post('/wc-api/pay0-payment', (req, res) => {
     console.log(`========== PAY0 OFFICIAL WEBHOOK RECEIVED ==========`);
     console.log(`[WEBHOOK] Headers:`, req.headers);
