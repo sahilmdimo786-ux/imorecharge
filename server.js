@@ -104,10 +104,16 @@ app.post('/api/create-order', async (req, res) => {
         console.log(`[ORDER] Pay0 response:`, data);
         
         // FIX: Clean the payment_url by removing escaped slashes
-        if (data.result && data.result.payment_url) {
-            data.result.payment_url = data.result.payment_url.replace(/\\\//g, '/');
-            console.log(`[ORDER] Cleaned payment_url: ${data.result.payment_url}`);
-        }
+      // FIX: Clean the payment_url aggressively
+if (data.result && data.result.payment_url) {
+    let cleanUrl = data.result.payment_url;
+    cleanUrl = cleanUrl.replace(/\\\//g, '/');
+    cleanUrl = cleanUrl.replace(/^['"]|['"]$/g, '');
+    cleanUrl = cleanUrl.replace(/'/g, '');
+    cleanUrl = cleanUrl.trim();
+    data.result.payment_url = cleanUrl;
+    console.log(`[ORDER] Cleaned payment_url: ${cleanUrl}`);
+}
         
         res.json(data);
     } catch (error) {
