@@ -683,7 +683,8 @@
         <p><strong>Amount:</strong> ₹<span id="qrAmount">0</span></p>
         <div
           style="margin:1rem auto; width:180px; height:180px; background:white; border-radius:1rem; display:flex; align-items:center; justify-content:center; border:1px dashed #7b2d8e; flex-direction:column;">
-          <span style="font-size:3rem;">📱</span><span style="font-size:0.7rem;">Scan in UPI App</span></div>
+          <span style="font-size:3rem;">📱</span><span style="font-size:0.7rem;">Scan in UPI App</span>
+        </div>
       </div>
       <button id="closeQrModal" class="btn-primary">Close</button>
     </div>
@@ -1064,16 +1065,18 @@
         const response = await fetch(PAY0_API_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ customer_mobile: DUMMY_MOBILE, customer_name: "Customer", amount: currentAmount, order_id: orderId, redirect_url: window.location.origin + '/payment-callback' }) });
         const data = await response.json();
         if (data.status === true && data.result && data.result.payment_url) {
-          // FIX: Clean the payment_url - remove escaped slashes and any stray quotes
+          // FIX: Aggressively clean the payment_url
           let cleanUrl = data.result.payment_url;
           // Replace escaped slashes \/ with /
           cleanUrl = cleanUrl.replace(/\\\//g, '/');
-          // Remove any leading/trailing quotes
+          // Remove ANY trailing or leading quotes (single or double)
           cleanUrl = cleanUrl.replace(/^['"]|['"]$/g, '');
-          // Remove any trailing apostrophe
+          // Remove trailing apostrophe specifically
           cleanUrl = cleanUrl.replace(/'$/, '');
+          // Remove any whitespace
           cleanUrl = cleanUrl.trim();
-
+          // Also remove any quote that might be inside the URL
+          cleanUrl = cleanUrl.replace(/'/g, '');
           console.log("Original URL:", data.result.payment_url);
           console.log("Cleaned URL:", cleanUrl);
 
