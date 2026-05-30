@@ -140,40 +140,82 @@ app.post('/api/check-order-status', async (req, res) => {
     }
 });
 
-// ========== OFFICIAL PAY0 WEBHOOK ENDPOINT ==========
+// ========== OFFICIAL PAY0 WEBHOOK ENDPOINT (UPDATED) ==========
 app.post('/wc-api/pay0-payment', (req, res) => {
     console.log(`========== PAY0 OFFICIAL WEBHOOK RECEIVED ==========`);
     console.log(`[WEBHOOK] Headers:`, req.headers);
-    console.log(`[WEBHOOK] Body:`, JSON.stringify(req.body, null, 2));
+    console.log(`[WEBHOOK] Content-Type:`, req.headers['content-type']);
     
-    // Extract webhook data (adjust field names based on what pay0 sends)
-    const body = req.body;
-    const order_id = body.order_id || body.orderId || body.orderid || body.merchant_order_id;
-    const status = body.status || body.txnStatus || body.payment_status;
-    const transaction_id = body.transaction_id || body.txnId || body.transactionId;
-    const amount = body.amount || body.paid_amount;
+    // Get the raw body as string for proper parsing
+    let rawBody = '';
+    req.on('data', chunk => {
+        rawBody += chunk;
+    });
     
-    console.log(`[WEBHOOK] Order: ${order_id}, Status: ${status}, TXN: ${transaction_id}, Amount: ${amount}`);
+    req.on('end', () => {
+        console.log(`[WEBHOOK] Raw Body: ${rawBody}`);
+        
+        let body = {};
+        
+        // Parse based on content type
+        const contentType = req.headers['content-type'] || '';
+        
+        if (contentType.includes('application/json')) {
+            // JSON format
+            try {
+                body = JSON.parse(rawBody);
+            } catch(e) {
+                console.log(`[WEBHOOK] Failed to parse JSON: ${e.message}`);
+            }
+        } else {
+            // Form-urlencoded format (most likely for Pay0)
+            const parsedBody = new URLSearchParams(rawBody);
+            for (const [key, value] of parsedBody) {
+                body[key] = value;
+            }
+        }
+        
+        console.log(`[WEBHOOK] Parsed Body:`, JSON.stringify(body, null, 2));
+        
+        // Extract webhook data - try multiple possible field names
+        const order_id = body.order_id || body.orderId || body.orderid || body.merchant_order_id || body.merchantOrderId;
+        const status = body.status || body.txnStatus || body.payment_status || body.paymentStatus;
+        const transaction_id = body.transaction_id || body.txnId || body.transactionId || body.utr;
+        const amount = body.amount || body.paid_amount || body.total_amount;
+        
+        console.log(`[WEBHOOK] Extracted - Order: ${order_id}, Status: ${status}, TXN: ${transaction_id}, Amount: ${amount}`);
+        
+        // Log to file
+        const logEntry = `${new Date().toISOString()} | ${order_id} | ${status} | ${transaction_id} | ${amount}\n`;
+        fs.appendFileSync('pay0_webhook.log', logEntry);
+        
+        // Check if payment is successful
+        const isSuccess = (status === 'success' || status === 'SUCCESS' || status === 'COMPLETED' || status === 'Success' || status === 'CAPTURED');
+        const isFailed = (status === 'failed' || status === 'FAILED' || status === 'Failed' || status === 'DECLINED');
+        
+        if (isSuccess) {
+            console.log(`[WEBHOOK] ✅ Payment SUCCESS for order ${order_id}`);
+            // Update order in your system
+            // You could also write to a success file or update Firebase
+            const successLog = `${new Date().toISOString()} | SUCCESS | ${order_id} | ${transaction_id} | ${amount}\n`;
+            fs.appendFileSync('payment_success.log', successLog);
+        } else if (isFailed) {
+            console.log(`[WEBHOOK] ❌ Payment FAILED for order ${order_id}`);
+        } else {
+            console.log(`[WEBHOOK] ⚠️ Unknown status: ${status} for order ${order_id}`);
+        }
+        
+        // Respond with JSON as pay0.shop expects
+        res.status(200).json({ 
+            status: 'success', 
+            message: 'Webhook received successfully',
+            order_id: order_id
+        });
+    });
     
-    // Log to file
-    const logEntry = `${new Date().toISOString()} | ${order_id} | ${status} | ${transaction_id} | ${amount}\n`;
-    fs.appendFileSync('pay0_webhook.log', logEntry);
-    
-    // Check if payment is successful
-    if (status === 'success' || status === 'SUCCESS' || status === 'COMPLETED' || status === 'Success') {
-        console.log(`[WEBHOOK] ✅ Payment SUCCESS for order ${order_id}`);
-        // TODO: Update your database, mark order as paid, etc.
-    } else if (status === 'failed' || status === 'FAILED' || status === 'Failed') {
-        console.log(`[WEBHOOK] ❌ Payment FAILED for order ${order_id}`);
-    } else {
-        console.log(`[WEBHOOK] ⚠️ Unknown status: ${status} for order ${order_id}`);
-    }
-    
-    // Respond with JSON as pay0.shop expects
-    res.status(200).json({ 
-        status: 'success', 
-        message: 'Webhook received successfully',
-        order_id: order_id
+    req.on('error', (err) => {
+        console.error(`[WEBHOOK] Request error: ${err.message}`);
+        res.status(500).json({ status: 'error', message: err.message });
     });
 });
 
