@@ -78,6 +78,37 @@ function logWebhook(data) {
     fs.appendFileSync(WEBHOOK_LOG_FILE, logEntry);
 }
 
+// ========== CLEAN URL FUNCTION ==========
+function cleanPaymentUrl(url) {
+    if (!url) return url;
+    
+    let cleaned = url;
+    
+    // Replace escaped slashes
+    cleaned = cleaned.replace(/\\\//g, '/');
+    
+    // Remove leading/trailing single quotes
+    cleaned = cleaned.replace(/^'|'$/g, '');
+    
+    // Remove leading/trailing double quotes
+    cleaned = cleaned.replace(/^"|"$/g, '');
+    
+    // Remove any trailing apostrophe
+    cleaned = cleaned.replace(/'$/, '');
+    
+    // Remove any trailing quote
+    cleaned = cleaned.replace(/["']$/, '');
+    
+    // Remove any whitespace
+    cleaned = cleaned.trim();
+    
+    // Remove any URL-encoded quotes
+    cleaned = cleaned.replace(/%27/g, '');
+    cleaned = cleaned.replace(/%22/g, '');
+    
+    return cleaned;
+}
+
 // ========== CREATE ORDER API ==========
 app.post('/api/create-order', async (req, res) => {
     try {
@@ -93,7 +124,7 @@ app.post('/api/create-order', async (req, res) => {
             user_token: PAY0_API_KEY,
             amount: amount.toString(),
             order_id: order_id,
-            redirect_url: redirect_url || 'https://v6anbir3.up.railway.app/payment-callback',
+            redirect_url: redirect_url || 'https://imorecharge-production-456d.up.railway.app/payment-callback',
             remark1: 'IMO Recharge',
             remark2: order_id
         };
@@ -101,7 +132,25 @@ app.post('/api/create-order', async (req, res) => {
         console.log(`[ORDER] Creating order: ${order_id} for ₹${amount}`);
         
         const data = await makeRequest(PAY0_API_URL, postData);
-        console.log(`[ORDER] Pay0 response:`, data);
+        console.log(`[ORDER] Raw Pay0 response:`, JSON.stringify(data));
+        
+        // AGGRESSIVE CLEAN: Clean the payment_url by removing any quotes or backslashes
+        if (data.result && data.result.payment_url) {
+            const originalUrl = data.result.payment_url;
+            const cleanedUrl = cleanPaymentUrl(originalUrl);
+            data.result.payment_url = cleanedUrl;
+            
+            console.log(`[ORDER] Original payment_url: ${originalUrl}`);
+            console.log(`[ORDER] Cleaned payment_url: ${cleanedUrl}`);
+            
+            // Verify the cleaned URL is valid
+            if (cleanedUrl.startsWith('https://pay0.shop/')) {
+                console.log(`[ORDER] ✅ URL cleaned successfully`);
+            } else {
+                console.log(`[ORDER] ⚠️ URL may still have issues: ${cleanedUrl}`);
+            }
+        }
+        
         res.json(data);
     } catch (error) {
         console.error('[ORDER] Error:', error);
@@ -126,6 +175,14 @@ app.post('/api/check-order-status', async (req, res) => {
         
         const data = await makeRequest(PAY0_CHECK_ORDER_URL, postData);
         console.log(`[STATUS] Response:`, data);
+        
+        // If status shows success, log it prominently
+        if (data.status === true && data.result?.txnStatus === 'SUCCESS') {
+            console.log(`[STATUS] ✅ ORDER ${order_id} IS SUCCESSFUL!`);
+            // Write to a success log file
+            fs.appendFileSync('payment_success.log', `${new Date().toISOString()} | ${order_id} | SUCCESS\n`);
+        }
+        
         res.json(data);
     } catch (error) {
         console.error('[STATUS] Error:', error);
@@ -133,13 +190,12 @@ app.post('/api/check-order-status', async (req, res) => {
     }
 });
 
-// ========== OFFICIAL PAY0 WEBHOOK ENDPOINT (ADD THIS) ==========
+// ========== OFFICIAL PAY0 WEBHOOK ENDPOINT ==========
 app.post('/wc-api/pay0-payment', (req, res) => {
     console.log(`========== PAY0 OFFICIAL WEBHOOK RECEIVED ==========`);
     console.log(`[WEBHOOK] Headers:`, req.headers);
     console.log(`[WEBHOOK] Body:`, JSON.stringify(req.body, null, 2));
     
-    // Extract webhook data (adjust field names based on what pay0 sends)
     const body = req.body;
     const order_id = body.order_id || body.orderId || body.orderid || body.merchant_order_id;
     const status = body.status || body.txnStatus || body.payment_status;
@@ -148,21 +204,18 @@ app.post('/wc-api/pay0-payment', (req, res) => {
     
     console.log(`[WEBHOOK] Order: ${order_id}, Status: ${status}, TXN: ${transaction_id}, Amount: ${amount}`);
     
-    // Log to file
     const logEntry = `${new Date().toISOString()} | ${order_id} | ${status} | ${transaction_id} | ${amount}\n`;
     fs.appendFileSync('pay0_webhook.log', logEntry);
     
-    // Check if payment is successful
     if (status === 'success' || status === 'SUCCESS' || status === 'COMPLETED' || status === 'Success') {
         console.log(`[WEBHOOK] ✅ Payment SUCCESS for order ${order_id}`);
-        // TODO: Update your database, mark order as paid, etc.
+        fs.appendFileSync('payment_success.log', `${new Date().toISOString()} | ${order_id} | WEBHOOK_SUCCESS\n`);
     } else if (status === 'failed' || status === 'FAILED' || status === 'Failed') {
         console.log(`[WEBHOOK] ❌ Payment FAILED for order ${order_id}`);
     } else {
         console.log(`[WEBHOOK] ⚠️ Unknown status: ${status} for order ${order_id}`);
     }
     
-    // Respond with JSON as pay0.shop expects
     res.status(200).json({ 
         status: 'success', 
         message: 'Webhook received successfully',
@@ -172,17 +225,14 @@ app.post('/wc-api/pay0-payment', (req, res) => {
 
 // ========== WEBHOOK ENDPOINT - UPDATED ==========
 app.post('/webhook', (req, res) => {
-    // Log the raw request for debugging
     console.log(`========== WEBHOOK RECEIVED ==========`);
     console.log(`[WEBHOOK] Headers:`, req.headers);
     console.log(`[WEBHOOK] Content-Type:`, req.headers['content-type']);
     console.log(`[WEBHOOK] Raw Body (if available):`, req.rawBody ? req.rawBody.toString() : 'N/A');
     
-    // Handle both JSON and form-urlencoded formats
     const body = req.body;
     console.log(`[WEBHOOK] Parsed Body:`, JSON.stringify(body, null, 2));
     
-    // Extract common field names (many gateways use different naming conventions)
     const webhookData = {
         status: body.status || body.Status || body.payment_status || body.tx_status,
         order_id: body.order_id || body.orderId || body.orderid || body.orderID || body.merchant_order_id,
@@ -201,29 +251,24 @@ app.post('/webhook', (req, res) => {
     console.log(`  - Amount: ${webhookData.amount}`);
     console.log(`======================================`);
     
-    // Log to file for persistence
     const logEntry = {
         timestamp: new Date().toISOString(),
         ...webhookData
     };
     logWebhook(logEntry);
     
-    // Process based on status
     if (webhookData.status === 'success' || webhookData.status === 'Success' || webhookData.status === 'COMPLETED') {
         console.log(`[WEBHOOK] ✅ Payment SUCCESS for order ${webhookData.order_id}`);
-        // TODO: Update your database, grant access, send confirmation email, etc.
     } else if (webhookData.status === 'failed' || webhookData.status === 'Failed' || webhookData.status === 'FAILED') {
         console.log(`[WEBHOOK] ❌ Payment FAILED for order ${webhookData.order_id}`);
-        // TODO: Handle failed payment
     } else {
         console.log(`[WEBHOOK] ⚠️ Unknown status: ${webhookData.status} for order ${webhookData.order_id}`);
     }
     
-    // Always respond with 200 OK - important to acknowledge receipt
     res.status(200).send('Webhook received successfully');
 });
 
-// ========== WEBHOOK TEST ENDPOINT (for debugging) ==========
+// ========== WEBHOOK TEST ENDPOINT ==========
 app.post('/webhook-test', (req, res) => {
     console.log(`========== TEST WEBHOOK ==========`);
     console.log(`Test webhook received:`);
@@ -235,12 +280,12 @@ app.post('/webhook-test', (req, res) => {
     });
 });
 
-// ========== WEBHOOK LOGS ENDPOINT (view recent webhooks) ==========
+// ========== WEBHOOK LOGS ENDPOINT ==========
 app.get('/webhook-logs', (req, res) => {
     try {
         if (fs.existsSync(WEBHOOK_LOG_FILE)) {
             const logs = fs.readFileSync(WEBHOOK_LOG_FILE, 'utf8');
-            const logLines = logs.trim().split('\n').slice(-50); // Last 50 entries
+            const logLines = logs.trim().split('\n').slice(-50);
             res.json({ 
                 status: 'success', 
                 count: logLines.length,
