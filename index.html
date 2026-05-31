@@ -1065,25 +1065,14 @@
         const response = await fetch(PAY0_API_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ customer_mobile: DUMMY_MOBILE, customer_name: "Customer", amount: currentAmount, order_id: orderId, redirect_url: window.location.origin + '/payment-callback' }) });
         const data = await response.json();
         if (data.status === true && data.result && data.result.payment_url) {
-          // FIX: Aggressively clean the payment_url
-          let cleanUrl = data.result.payment_url;
-          // Replace escaped slashes \/ with /
-          cleanUrl = cleanUrl.replace(/\\\//g, '/');
-          // Remove ANY trailing or leading quotes (single or double)
-          cleanUrl = cleanUrl.replace(/^['"]|['"]$/g, '');
-          // Remove trailing apostrophe specifically
-          cleanUrl = cleanUrl.replace(/'$/, '');
-          // Remove any whitespace
-          cleanUrl = cleanUrl.trim();
-          // Also remove any quote that might be inside the URL
-          cleanUrl = cleanUrl.replace(/'/g, '');
-          console.log("Original URL:", data.result.payment_url);
-          console.log("Cleaned URL:", cleanUrl);
-
           sessionStorage.setItem('pendingOrder', JSON.stringify(currentOrder));
-          // Start polling immediately after redirecting to payment gateway
+          // Start polling BEFORE opening payment page
           startPollingOrderStatus(orderId, currentOrder);
-          window.location.href = cleanUrl;
+          // Open payment page in NEW tab so polling continues in background
+          window.open(data.result.payment_url, '_blank');
+          showToast("Payment page opened in new tab. Complete payment there.");
+          rechargeBtn.disabled = false;
+          rechargeBtn.innerHTML = "🚀 Proceed to Pay";
         }
         else { showToast("Payment Error: " + (data.message || "Unknown error")); rechargeBtn.disabled = false; rechargeBtn.innerHTML = "🚀 Proceed to Pay"; }
       } catch (error) { showToast("Network Error"); rechargeBtn.disabled = false; rechargeBtn.innerHTML = "🚀 Proceed to Pay"; }
