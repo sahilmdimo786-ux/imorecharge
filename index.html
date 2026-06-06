@@ -490,7 +490,7 @@
     }
 
     @keyframes premiumPop {
-      0% {
+      from {
         transform: scale(0.7);
         opacity: 0;
       }
@@ -632,7 +632,7 @@
     <div class="price-chip"><span>💰 Total Amount</span><span id="amountDisplay">₹0</span></div>
     <button class="btn-primary" id="rechargeBtn">🚀 Proceed to Pay</button>
     <div class="ticker-bar">
-      <div class="ticker-scroll" id="tickerText">✨ Pay0 Gateway • Secure UPI • Auto WhatsApp Redirect</div>
+      <div class="ticker-scroll" id="tickerText">Loading...</div>
     </div>
     <div class="flex-row" style="justify-content:space-between; margin:0.5rem 0;">
       <span style="background:#eef2ff; padding:0.3rem 0.8rem; border-radius:2rem;">🔒 Pay0 Secure</span>
@@ -712,8 +712,7 @@
         </svg></div>
       <h2>Payment Successful! ✨</h2>
       <p>Your transaction has been completed</p>
-      <div id="successOrderDetails" class="success-details"></div><button id="whatsappRedirectBtn"
-        class="whatsapp-redirect-btn">📱 Continue to WhatsApp</button>
+      <div id="successOrderDetails" class="success-details"></div>
     </div>
   </div>
 
@@ -726,8 +725,8 @@
           id="adminPassword" placeholder="Password"><button id="adminLoginBtn" class="btn-primary">Login</button>
         <div id="adminError" style="color:red;"></div>
       </div>
-      <div id="adminPanelSection" style="display:none;"><button id="adminLogoutBtn" class="btn-secondary">🚪
-          Logout</button>
+      <div id="adminPanelSection" style="display:none;">
+        <button id="adminLogoutBtn" class="btn-secondary">🚪 Logout</button>
         <div style="background:#eef2ff; padding:0.8rem; border-radius:1rem; margin-bottom:1rem;">
           <h4>💰 Change UPI ID</h4>
           <div class="setting-row"><input type="text" id="adminUpiId" placeholder="Enter new UPI ID"
@@ -736,14 +735,15 @@
         </div>
         <div style="background:#eef2ff; padding:0.8rem; border-radius:1rem; margin-bottom:1rem;">
           <h4>💎 Per Diamond Cost (Set Rate per Diamond)</h4>
-          <div id="perDiamondRatesContainer"></div><button id="saveRatesBtn" class="btn-primary">💾 Save Per Diamond
-            Rates</button><small>Pack price = Per Diamond Rate × Quantity (Saved to Firebase - visible to all
-            users)</small>
+          <div id="perDiamondRatesContainer"></div>
+          <button id="saveRatesBtn" class="btn-primary">💾 Save Per Diamond Rates</button>
+          <small>Pack price = Per Diamond Rate × Quantity (Saved to Firebase - visible to all users)</small>
         </div>
         <div style="background:#eef2ff; padding:0.8rem; border-radius:1rem; margin-bottom:1rem;">
-          <h4>💰 Price per Diamond (Base Rate)</h4>
-          <div class="setting-row"><input type="number" id="adminPricePerDiamond" step="0.5" value="3"><button
-              id="updatePriceBtn" class="btn-primary">Update Rate</button></div>
+          <h4>📢 Auto-Scrolling Ticker Message</h4>
+          <div class="setting-row"><input type="text" id="adminTickerMsg" placeholder="Enter ticker message"><button
+              id="updateTickerBtn" class="btn-primary">Update Ticker</button></div>
+          <small>Separate multiple messages with | (pipe) symbol. Example: Welcome! | Best Rates | Fast Delivery</small>
         </div>
         <h4>📋 Orders</h4>
         <div style="overflow-x:auto; max-height: 300px;">
@@ -761,8 +761,6 @@
             <tbody id="ordersTableBody"></tbody>
           </table>
         </div>
-        <div style="margin-top:1rem;"><label>📢 Ticker Message</label><input type="text" id="adminTickerMsg"><button
-            id="updateTickerBtn" class="btn-primary">Update Ticker</button></div>
         <button id="toggleMaintenanceBtn" class="btn-secondary">Toggle Maintenance</button>
       </div>
       <button id="closeAdminModal" class="btn-secondary">Close</button>
@@ -794,43 +792,115 @@
     // ========== CONFIGURATION ==========
     let CURRENT_UPI_ID = "5122057670745SB1024@mairtel";
     const MERCHANT_NAME = "Niraj Communication";
-    const WHATSAPP_NUMBER = "919472898572";
+    const WHATSAPP_NUMBER = "6203240682";
     const MIN_DIAMONDS = 10;
-    let BASE_PRICE_PER_DIAMOND = 3;
 
+    // Define pack quantities
     const packQuantities = [10, 50, 100, 200, 500, 1000, 2000, 5000];
-    let perDiamondRates = { 10: 3.0, 50: 1.8, 100: 1.76, 200: 1.76, 500: 1.75, 1000: 1.75, 2000: 1.75, 5000: 1.75 };
+
+    // These will be loaded from Firebase
+    let perDiamondRates = {};
     let creditPacks = [];
+    let tickerMessages = ["✨ Pay0 Gateway • Secure Payment", "💎 Best Diamond Rates", "⚡ Instant Recharge"];
+    let tickerMessageString = "✨ Pay0 Gateway • Secure Payment | 💎 Best Diamond Rates | ⚡ Instant Recharge";
 
-    function generateCreditPacks() {
-      creditPacks = [];
-      for (let qty of packQuantities) creditPacks.push({ qty: qty, price: Math.round(perDiamondRates[qty] * qty) });
-    }
+    let currentStepValue = 10;
+    let currentQty = 100;
+    let currentAmount = 0;
+    let currentOrder = null;
+    let paymentInitiated = false;
+    let paymentCompleted = false;
+    let settings = { maintenanceMode: false };
+    let orders = [];
+    let currentAdmin = null;
+    let lockedPackRate = 1.76;
+    let lockedPackQty = 100;
 
-    // Firebase Realtime Database - Load and Sync Prices
-    let isFirstLoad = true;
-    function loadPricesFromFirebase() {
+    // ========== LOAD PRICES AND TICKER FROM FIREBASE ==========
+    function loadPricesAndTickerFromFirebase() {
+      // Load diamond rates
       const ratesRef = db.ref('perDiamondRates');
       ratesRef.on('value', (snapshot) => {
         const data = snapshot.val();
-        if (data) {
+        if (data && Object.keys(data).length > 0) {
           let changed = false;
           for (let qty of packQuantities) {
-            if (data[qty] !== undefined && !isNaN(data[qty]) && data[qty] > 0 && perDiamondRates[qty] !== data[qty]) {
-              perDiamondRates[qty] = data[qty];
-              changed = true;
+            if (data[qty] !== undefined && !isNaN(data[qty]) && data[qty] > 0) {
+              if (perDiamondRates[qty] !== data[qty]) {
+                perDiamondRates[qty] = data[qty];
+                changed = true;
+              }
+            } else if (!perDiamondRates[qty]) {
+              // Set default if not exists
+              perDiamondRates[qty] = qty === 10 ? 3.0 : qty === 50 ? 1.8 : 1.76;
             }
           }
-          if (changed || isFirstLoad) {
+          if (changed) {
             generateCreditPacks();
             buildGrid();
-            lockedPackRate = getPackRate(lockedPackQty);
             updateUI();
-            if (!isFirstLoad) showToast("💰 Prices updated from server!");
-            isFirstLoad = false;
+            showToast("💰 Prices updated from server!");
+          } else if (Object.keys(perDiamondRates).length === 0) {
+            // First load - set defaults
+            for (let qty of packQuantities) {
+              perDiamondRates[qty] = qty === 10 ? 3.0 : qty === 50 ? 1.8 : 1.76;
+            }
+            generateCreditPacks();
+            buildGrid();
+            updateUI();
           }
+        } else {
+          // Set default rates if nothing in Firebase
+          for (let qty of packQuantities) {
+            perDiamondRates[qty] = qty === 10 ? 3.0 : qty === 50 ? 1.8 : 1.76;
+          }
+          generateCreditPacks();
+          buildGrid();
+          updateUI();
+          // Save defaults to Firebase for future use
+          db.ref('perDiamondRates').set(perDiamondRates);
         }
       });
+
+      // Load ticker messages
+      const tickerRef = db.ref('tickerMessages');
+      tickerRef.on('value', (snapshot) => {
+        const data = snapshot.val();
+        if (data && data.messages && Array.isArray(data.messages) && data.messages.length > 0) {
+          tickerMessages = data.messages;
+          tickerMessageString = tickerMessages.join(' | ');
+          updateTickerDisplay();
+        } else if (data && typeof data === 'string') {
+          // Handle string format
+          tickerMessageString = data;
+          tickerMessages = data.split('|').map(s => s.trim());
+          updateTickerDisplay();
+        } else {
+          // Default ticker
+          tickerMessages = ["✨ Pay0 Gateway • Secure Payment", "💎 Best Diamond Rates", "⚡ Instant Recharge"];
+          tickerMessageString = tickerMessages.join(' | ');
+          updateTickerDisplay();
+          // Save default to Firebase
+          db.ref('tickerMessages').set({ messages: tickerMessages });
+        }
+      });
+    }
+
+    function updateTickerDisplay() {
+      const tickerElement = document.getElementById('tickerText');
+      if (tickerElement) {
+        tickerElement.innerText = tickerMessageString;
+      }
+    }
+
+    function generateCreditPacks() {
+      creditPacks = [];
+      for (let qty of packQuantities) {
+        let rate = perDiamondRates[qty] || (qty === 10 ? 3.0 : qty === 50 ? 1.8 : 1.76);
+        creditPacks.push({ qty: qty, price: Math.round(rate * qty) });
+      }
+      // Update lockedPackRate based on current quantity
+      lockedPackRate = getPackRate(lockedPackQty);
     }
 
     function savePricesToFirebase() {
@@ -843,26 +913,23 @@
         });
     }
 
-    function getPackRate(qty) { return perDiamondRates[qty]; }
+    function saveTickerToFirebase() {
+      const tickerRef = db.ref('tickerMessages');
+      tickerRef.set({ messages: tickerMessages })
+        .then(() => showToast("✅ Ticker message saved to Firebase"))
+        .catch(err => showToast("Error saving ticker: " + err.message));
+    }
 
-    let currentStepValue = 10;
-    let currentQty = 100;
-    let currentAmount = 0;
-    let currentOrder = null;
-    let paymentInitiated = false;
-    let paymentCompleted = false;
-    let settings = { maintenanceMode: false, customTickerMessages: ["✨ Pay0 Gateway • Fast Recharge"] };
-    let orders = [];
-    let currentAdmin = null;
-    let lockedPackRate = 1.76;
-    let lockedPackQty = 100;
+    function getPackRate(qty) {
+      return perDiamondRates[qty] || (qty === 10 ? 3.0 : qty === 50 ? 1.8 : 1.76);
+    }
 
-    // ========== POLLING FUNCTIONALITY (ADDED) ==========
+    // ========== POLLING FUNCTIONALITY ==========
     let statusPollingInterval = null;
     let currentPollingOrderId = null;
     let pollingAttempts = 0;
-    const MAX_POLLING_ATTEMPTS = 60; // 60 attempts * 3 seconds = 3 minutes max
-    const POLLING_INTERVAL_MS = 3000; // Check every 3 seconds
+    const MAX_POLLING_ATTEMPTS = 60;
+    const POLLING_INTERVAL_MS = 3000;
 
     function showPollingStatus(show, message = "⏳ Checking payment status...") {
       const pollingBar = document.getElementById('statusPollingBar');
@@ -894,21 +961,12 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ order_id: orderId })
         });
-
         const data = await response.json();
         console.log(`[POLLING] Attempt ${pollingAttempts}/${MAX_POLLING_ATTEMPTS} for ${orderId}:`, data);
-
-        // Update polling status message
         showPollingStatus(true, `⏳ Checking payment... (${pollingAttempts}/${MAX_POLLING_ATTEMPTS})`);
-
-        // Check for successful payment - looking for various success indicators
-        const isSuccess =
-          (data.status === 'COMPLETED') ||
-          (data.status === 'SUCCESS') ||
+        const isSuccess = (data.status === 'COMPLETED') || (data.status === 'SUCCESS') ||
           (data.status === true && data.result?.txnStatus === 'SUCCESS') ||
-          (data.result?.status === 'success') ||
-          (data.payment_status === 'success');
-
+          (data.result?.status === 'success') || (data.payment_status === 'success');
         if (isSuccess) {
           console.log(`[POLLING] ✅ Payment SUCCESS for ${orderId}!`);
           stopPolling();
@@ -919,74 +977,77 @@
           }
           return true;
         }
-
-        // Check for failed payment
-        const isFailed =
-          (data.status === 'FAILED') ||
-          (data.result?.txnStatus === 'FAILED') ||
+        const isFailed = (data.status === 'FAILED') || (data.result?.txnStatus === 'FAILED') ||
           (data.payment_status === 'failed');
-
         if (isFailed) {
           console.log(`[POLLING] ❌ Payment FAILED for ${orderId}`);
           stopPolling();
           showToast("❌ Payment failed. Please try again.");
           return false;
         }
-
-        return null; // Still pending
-
+        return null;
       } catch (error) {
         console.error('[POLLING] Error checking status:', error);
-        return null; // Still pending on error
+        return null;
       }
     }
 
     function startPollingOrderStatus(orderId, orderData) {
-      stopPolling(); // Clear any existing polling
-
+      stopPolling();
       currentPollingOrderId = orderId;
       pollingAttempts = 0;
       showPollingStatus(true, "⏳ Payment initiated. Verifying transaction...");
-
       console.log(`[POLLING] Started for order: ${orderId}`);
-
       statusPollingInterval = setInterval(async () => {
         pollingAttempts++;
-
-        // Stop if we've exceeded max attempts
         if (pollingAttempts >= MAX_POLLING_ATTEMPTS) {
           console.log(`[POLLING] Timeout after ${MAX_POLLING_ATTEMPTS} attempts for ${orderId}`);
           stopPolling();
           showToast("⚠️ Payment verification timeout. Please contact support with your Order ID: " + orderId);
           return;
         }
-
         const result = await checkPaymentStatus(orderId, orderData);
-
-        // If result is true (success) or false (failed), polling already stopped inside function
         if (result === true || result === false) {
-          // Polling already stopped
           return;
         }
-
-        // If we get here, still pending - continue polling
-
       }, POLLING_INTERVAL_MS);
     }
 
-    // ========== END POLLING FUNCTIONALITY ==========
+    // ========== CORE FUNCTIONS ==========
+    function showToast(msg) {
+      let t = document.querySelector('.toast');
+      if (t) t.remove();
+      const div = document.createElement('div');
+      div.className = 'toast';
+      div.innerText = msg;
+      document.body.appendChild(div);
+      setTimeout(() => div.remove(), 3000);
+    }
 
-    function showToast(msg) { let t = document.querySelector('.toast'); if (t) t.remove(); const div = document.createElement('div'); div.className = 'toast'; div.innerText = msg; document.body.appendChild(div); setTimeout(() => div.remove(), 3000); }
+    function updateProceedButtonState() {
+      const proceedBtn = document.getElementById('rechargeBtn');
+      if (currentQty < MIN_DIAMONDS) {
+        proceedBtn.disabled = true;
+        proceedBtn.style.opacity = '0.6';
+      } else {
+        proceedBtn.disabled = false;
+        proceedBtn.style.opacity = '1';
+      }
+    }
 
-    function updateProceedButtonState() { const proceedBtn = document.getElementById('rechargeBtn'); if (currentQty < MIN_DIAMONDS) { proceedBtn.disabled = true; proceedBtn.style.opacity = '0.6'; } else { proceedBtn.disabled = false; proceedBtn.style.opacity = '1'; } }
-
-    function getPriceForQuantity(qty) { return Math.round(qty * lockedPackRate); }
+    function getPriceForQuantity(qty) {
+      return Math.round(qty * lockedPackRate);
+    }
 
     function updateUI() {
       currentAmount = getPriceForQuantity(currentQty);
       document.getElementById('amountDisplay').innerText = `₹${currentAmount}`;
       document.getElementById('manualQty').value = currentQty;
-      document.querySelectorAll('.diamond-option').forEach(el => { const q = parseInt(el.dataset.qty); if (q === currentQty) el.classList.add('selected'); else el.classList.remove('selected'); });
+      document.querySelectorAll('.diamond-option').forEach(el => {
+        const q = parseInt(el.dataset.qty);
+        if (q === currentQty) el.classList.add('selected');
+        else el.classList.remove('selected');
+      });
       updateProceedButtonState();
     }
 
@@ -999,7 +1060,10 @@
         document.getElementById('decrementBtn').disabled = true;
         document.getElementById('incrementBtn').disabled = true;
         document.getElementById('helpBtn').disabled = true;
-        document.querySelectorAll('.diamond-option').forEach(el => { el.style.pointerEvents = 'none'; el.style.opacity = '0.5'; });
+        document.querySelectorAll('.diamond-option').forEach(el => {
+          el.style.pointerEvents = 'none';
+          el.style.opacity = '0.5';
+        });
       } else {
         maintenanceAlert.style.display = 'none';
         document.getElementById('rechargeBtn').disabled = false;
@@ -1007,15 +1071,21 @@
         document.getElementById('decrementBtn').disabled = false;
         document.getElementById('incrementBtn').disabled = false;
         document.getElementById('helpBtn').disabled = false;
-        document.querySelectorAll('.diamond-option').forEach(el => { el.style.pointerEvents = 'auto'; el.style.opacity = '1'; });
+        document.querySelectorAll('.diamond-option').forEach(el => {
+          el.style.pointerEvents = 'auto';
+          el.style.opacity = '1';
+        });
         updateProceedButtonState();
       }
     }
 
-    function generateOrderId() { return 'IMO' + Date.now().toString().slice(-8) + Math.floor(Math.random() * 1000); }
+    function generateOrderId() {
+      return 'IMO' + Date.now().toString().slice(-8) + Math.floor(Math.random() * 1000);
+    }
 
     function buildGrid() {
       const grid = document.getElementById('diamondGrid');
+      if (!grid) return;
       grid.innerHTML = '';
       creditPacks.forEach(pack => {
         const div = document.createElement('div');
@@ -1046,7 +1116,7 @@
     function redirectToWhatsApp(orderData) {
       if (!orderData) return;
       const msg = `Hello%2C%20I%20have%20completed%20payment%20for%20IMO%20recharge%0A%0A📌%20Order%20ID%3A%20${orderData.id}%0A👤%20IMO%20ID%3A%20${encodeURIComponent(orderData.imoId)}%0A💎%20Diamonds%3A%20${orderData.diamonds}%0A💰%20Amount%20Paid%3A%20₹${orderData.amount}%0A%0AUPI%20ID%3A%20${CURRENT_UPI_ID}%0A%0APlease%20verify%20and%20recharge%20manually.`;
-      window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${msg}`, '_blank');
+      window.location.href = `https://wa.me/${WHATSAPP_NUMBER}?text=${msg}`;
     }
 
     async function proceedToPayment() {
@@ -1062,44 +1132,58 @@
       rechargeBtn.disabled = true;
       rechargeBtn.innerHTML = `<span class="loading-spinner"></span> Creating order...`;
       try {
-        const response = await fetch(PAY0_API_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ customer_mobile: DUMMY_MOBILE, customer_name: "Customer", amount: currentAmount, order_id: orderId, redirect_url: window.location.origin + '/payment-callback' }) });
+        const response = await fetch(PAY0_API_URL, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            customer_mobile: DUMMY_MOBILE, customer_name: "Customer",
+            amount: currentAmount, order_id: orderId,
+            redirect_url: window.location.origin + '/payment-callback'
+          })
+        });
         const data = await response.json();
         if (data.status === true && data.result && data.result.payment_url) {
           sessionStorage.setItem('pendingOrder', JSON.stringify(currentOrder));
-          // Start polling BEFORE opening payment page
           startPollingOrderStatus(orderId, currentOrder);
-          // Open payment page in NEW tab so polling continues in background
           window.open(data.result.payment_url, '_blank');
           showToast("Payment page opened in new tab. Complete payment there.");
           rechargeBtn.disabled = false;
           rechargeBtn.innerHTML = "🚀 Proceed to Pay";
         }
-        else { showToast("Payment Error: " + (data.message || "Unknown error")); rechargeBtn.disabled = false; rechargeBtn.innerHTML = "🚀 Proceed to Pay"; }
-      } catch (error) { showToast("Network Error"); rechargeBtn.disabled = false; rechargeBtn.innerHTML = "🚀 Proceed to Pay"; }
+        else {
+          showToast("Payment Error: " + (data.message || "Unknown error"));
+          rechargeBtn.disabled = false;
+          rechargeBtn.innerHTML = "🚀 Proceed to Pay";
+        }
+      } catch (error) {
+        showToast("Network Error");
+        rechargeBtn.disabled = false;
+        rechargeBtn.innerHTML = "🚀 Proceed to Pay";
+      }
     }
 
     function showSuccessAndRedirectToWhatsApp(order) {
-      // Stop polling if still active
       stopPolling();
-
-      document.getElementById('successOrderDetails').innerHTML = `<p><strong>Order ID:</strong> ${order.id}</p><p><strong>IMO ID:</strong> ${order.imoId}</p><p><strong>💎 Diamonds:</strong> ${order.diamonds}</p><p><strong>💰 Amount:</strong> ₹${order.amount}</p>`;
+      const orderDetails = `<p><strong>Order ID:</strong> ${order.id}</p><p><strong>IMO ID:</strong> ${order.imoId}</p><p><strong>💎 Diamonds:</strong> ${order.diamonds}</p><p><strong>💰 Amount:</strong> ₹${order.amount}</p>`;
+      document.getElementById('successOrderDetails').innerHTML = orderDetails;
       document.getElementById('successOverlay').classList.add('active');
-      const btn = document.getElementById('whatsappRedirectBtn');
-      const newBtn = btn.cloneNode(true);
-      btn.parentNode.replaceChild(newBtn, btn);
-      newBtn.addEventListener('click', () => { redirectToWhatsApp(order); document.getElementById('successOverlay').classList.remove('active'); });
-      setTimeout(() => { if (document.getElementById('successOverlay').classList.contains('active')) { redirectToWhatsApp(order); document.getElementById('successOverlay').classList.remove('active'); } }, 3000);
+      redirectToWhatsApp(order);
+      setTimeout(() => {
+        document.getElementById('successOverlay').classList.remove('active');
+      }, 2000);
     }
 
     function checkPaymentSuccess() {
       const urlParams = new URLSearchParams(window.location.search);
       const paymentSuccess = urlParams.get('payment_success');
       const orderIdFromUrl = urlParams.get('order_id');
-
       if (paymentSuccess || orderIdFromUrl) {
         const savedOrder = sessionStorage.getItem('pendingOrder');
         if (savedOrder) {
-          try { const order = JSON.parse(savedOrder); showSuccessAndRedirectToWhatsApp(order); sessionStorage.removeItem('pendingOrder'); } catch (e) { }
+          try {
+            const order = JSON.parse(savedOrder);
+            showSuccessAndRedirectToWhatsApp(order);
+            sessionStorage.removeItem('pendingOrder');
+          } catch (e) { }
         } else if (currentOrder) {
           showSuccessAndRedirectToWhatsApp(currentOrder);
         }
@@ -1124,8 +1208,11 @@
       sessionStorage.setItem('pendingOrderData', JSON.stringify(currentOrder));
       localStorage.setItem('pendingOrderDataBackup', JSON.stringify(currentOrder));
       const isAndroid = /Android/i.test(navigator.userAgent);
-      if (isAndroid) { window.location.href = `intent://pay?${upiLink.split("?")[1]}#Intent;scheme=upi;end`; }
-      else { window.location.href = upiLink; }
+      if (isAndroid) {
+        window.location.href = `intent://pay?${upiLink.split("?")[1]}#Intent;scheme=upi;end`;
+      } else {
+        window.location.href = upiLink;
+      }
       setTimeout(() => {
         if (paymentInitiated && !paymentCompleted) {
           paymentInitiated = false;
@@ -1148,60 +1235,123 @@
       if (startTime && pendingOrderId && pendingOrderData && paymentInitiated && !paymentCompleted) {
         const elapsed = Date.now() - parseInt(startTime);
         if (elapsed > 1000) {
-          paymentCompleted = true; paymentInitiated = false;
+          paymentCompleted = true;
+          paymentInitiated = false;
           let order = null;
           try { order = JSON.parse(pendingOrderData); } catch (e) { }
           if (!order && currentOrder) order = currentOrder;
-          sessionStorage.removeItem('upiStartTime'); sessionStorage.removeItem('pendingOrderId'); sessionStorage.removeItem('pendingOrderData'); localStorage.removeItem('pendingOrderDataBackup');
+          sessionStorage.removeItem('upiStartTime');
+          sessionStorage.removeItem('pendingOrderId');
+          sessionStorage.removeItem('pendingOrderData');
+          localStorage.removeItem('pendingOrderDataBackup');
           document.getElementById('paymentModal')?.classList.remove('active');
           if (order) showSuccessAndRedirectToWhatsApp(order);
           const payNowBtn = document.getElementById('payNowBtn');
-          if (payNowBtn) { payNowBtn.innerHTML = `💸 Pay Now`; payNowBtn.disabled = false; }
+          if (payNowBtn) {
+            payNowBtn.innerHTML = `💸 Pay Now`;
+            payNowBtn.disabled = false;
+          }
           return true;
         }
       }
       return false;
     }
 
-    async function copyToClipboard(text) { try { await navigator.clipboard.writeText(text); showToast("✅ UPI ID copied!"); } catch { prompt("Copy this UPI ID:", text); } }
+    async function copyToClipboard(text) {
+      try {
+        await navigator.clipboard.writeText(text);
+        showToast("✅ UPI ID copied!");
+      } catch {
+        prompt("Copy this UPI ID:", text);
+      }
+    }
 
+    // ========== EVENT LISTENERS ==========
     const manualQtyInput = document.getElementById('manualQty');
+
     function updateFromManualInput() {
       let qty = parseInt(manualQtyInput.value, 10);
       if (isNaN(qty)) qty = 1;
       if (qty < 1) qty = 1;
-      if (qty < lockedPackQty) { qty = lockedPackQty; manualQtyInput.value = qty; showToast(`⚠️ Cannot go below ${lockedPackQty} diamonds`); }
+      if (qty < lockedPackQty) {
+        qty = lockedPackQty;
+        manualQtyInput.value = qty;
+        showToast(`⚠️ Cannot go below ${lockedPackQty} diamonds`);
+      }
       currentQty = qty;
       currentAmount = getPriceForQuantity(currentQty);
       document.getElementById('amountDisplay').innerHTML = `₹${currentAmount}`;
       let matched = false;
-      document.querySelectorAll('.diamond-option').forEach(el => { const q = parseInt(el.dataset.qty); if (q === currentQty) { el.classList.add('selected'); matched = true; } else el.classList.remove('selected'); });
+      document.querySelectorAll('.diamond-option').forEach(el => {
+        const q = parseInt(el.dataset.qty);
+        if (q === currentQty) {
+          el.classList.add('selected');
+          matched = true;
+        } else el.classList.remove('selected');
+      });
       updateProceedButtonState();
     }
+
     manualQtyInput.addEventListener('input', updateFromManualInput);
     manualQtyInput.addEventListener('change', updateFromManualInput);
-    document.getElementById('incrementBtn').addEventListener('click', () => { manualQtyInput.value = currentQty + currentStepValue; updateFromManualInput(); });
-    document.getElementById('decrementBtn').addEventListener('click', () => { let newVal = currentQty - currentStepValue; if (newVal < lockedPackQty) { showToast(`⚠️ Cannot go below ${lockedPackQty} diamonds`); newVal = lockedPackQty; } manualQtyInput.value = newVal; updateFromManualInput(); });
-    document.getElementById('imoId').addEventListener('input', function (e) { this.value = this.value.replace(/[^0-9]/g, ''); });
+    document.getElementById('incrementBtn').addEventListener('click', () => {
+      manualQtyInput.value = currentQty + currentStepValue;
+      updateFromManualInput();
+    });
+    document.getElementById('decrementBtn').addEventListener('click', () => {
+      let newVal = currentQty - currentStepValue;
+      if (newVal < lockedPackQty) {
+        showToast(`⚠️ Cannot go below ${lockedPackQty} diamonds`);
+        newVal = lockedPackQty;
+      }
+      manualQtyInput.value = newVal;
+      updateFromManualInput();
+    });
+    document.getElementById('imoId').addEventListener('input', function (e) {
+      this.value = this.value.replace(/[^0-9]/g, '');
+    });
     document.getElementById('rechargeBtn').addEventListener('click', proceedToPayment);
     document.getElementById('copyUpiBtn').addEventListener('click', () => copyToClipboard(CURRENT_UPI_ID));
-    document.getElementById('closePaymentModal').addEventListener('click', () => { document.getElementById('paymentModal').classList.remove('active'); paymentInitiated = false; });
-    document.getElementById('closeQrModal').addEventListener('click', () => { document.getElementById('qrModal').classList.remove('active'); });
-    document.addEventListener('click', (e) => { if (e.target && e.target.id === 'payNowBtn') openUpiPayment(); });
+    document.getElementById('closePaymentModal').addEventListener('click', () => {
+      document.getElementById('paymentModal').classList.remove('active');
+      paymentInitiated = false;
+    });
+    document.getElementById('closeQrModal').addEventListener('click', () => {
+      document.getElementById('qrModal').classList.remove('active');
+    });
+    document.addEventListener('click', (e) => {
+      if (e.target && e.target.id === 'payNowBtn') openUpiPayment();
+    });
     window.showQrMethod = () => document.getElementById('qrModal').classList.add('active');
+
     function openTutorial() { document.getElementById('tutorialModal').classList.add('active'); }
     function closeTutorial() { document.getElementById('tutorialModal').classList.remove('active'); }
     document.getElementById('helpBtn').addEventListener('click', openTutorial);
     window.closeTutorial = closeTutorial;
-    document.getElementById('tutorialModal').addEventListener('click', (e) => { if (e.target === e.currentTarget) closeTutorial(); });
-    document.getElementById('paymentModal').addEventListener('click', (e) => { if (e.target === e.currentTarget && !paymentInitiated) document.getElementById('paymentModal').classList.remove('active'); });
-    document.getElementById('qrModal').addEventListener('click', (e) => { if (e.target === e.currentTarget) document.getElementById('qrModal').classList.remove('active'); });
+    document.getElementById('tutorialModal').addEventListener('click', (e) => {
+      if (e.target === e.currentTarget) closeTutorial();
+    });
+    document.getElementById('paymentModal').addEventListener('click', (e) => {
+      if (e.target === e.currentTarget && !paymentInitiated) document.getElementById('paymentModal').classList.remove('active');
+    });
+    document.getElementById('qrModal').addEventListener('click', (e) => {
+      if (e.target === e.currentTarget) document.getElementById('qrModal').classList.remove('active');
+    });
     document.getElementById('helpWhatsAppBtn').addEventListener('click', () => window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=Hello%20need%20help`, '_blank'));
-    document.getElementById('floatWhatsApp').addEventListener('click', (e) => { e.preventDefault(); window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=Hello%20need%20help`, '_blank'); });
+    document.getElementById('floatWhatsApp').addEventListener('click', (e) => {
+      e.preventDefault();
+      window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=Hello%20need%20help`, '_blank');
+    });
     document.getElementById('joinImoBtn').addEventListener('click', () => window.open('https://s.imoim.net/8czyd5', '_blank'));
-    document.addEventListener('visibilitychange', () => { if (!document.hidden && paymentInitiated) checkReturnAndRedirectToWhatsApp(); });
-    window.addEventListener('focus', () => { if (paymentInitiated) checkReturnAndRedirectToWhatsApp(); });
-    window.addEventListener('pageshow', () => { if (paymentInitiated) checkReturnAndRedirectToWhatsApp(); });
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden && paymentInitiated) checkReturnAndRedirectToWhatsApp();
+    });
+    window.addEventListener('focus', () => {
+      if (paymentInitiated) checkReturnAndRedirectToWhatsApp();
+    });
+    window.addEventListener('pageshow', () => {
+      if (paymentInitiated) checkReturnAndRedirectToWhatsApp();
+    });
 
     window.addEventListener('load', () => {
       const successShown = checkPaymentSuccess();
@@ -1213,8 +1363,11 @@
         }
       }
     });
-    document.getElementById('successOverlay').addEventListener('click', function (e) { if (e.target === this) this.classList.remove('active'); });
+    document.getElementById('successOverlay').addEventListener('click', function (e) {
+      if (e.target === this) this.classList.remove('active');
+    });
 
+    // ========== ADMIN FUNCTIONS ==========
     function renderAdminOrders() {
       const tbody = document.getElementById('ordersTableBody');
       if (!tbody) return;
@@ -1227,8 +1380,18 @@
         row.insertCell(3).innerText = `₹${order.amount}`;
         row.insertCell(4).innerHTML = order.status === 'paid' ? '<span class="status-paid">✓ Paid</span>' : '<span class="status-pending">⏳ Pending</span>';
         const actionCell = row.insertCell(5);
-        if (order.status !== 'paid') { const btn = document.createElement('button'); btn.innerText = '✅ Mark Paid'; btn.className = 'mark-paid-btn'; btn.onclick = () => { order.status = 'paid'; localStorage.setItem('imo_orders', JSON.stringify(orders)); renderAdminOrders(); showToast(`Order ${order.id} marked paid`); }; actionCell.appendChild(btn); }
-        else actionCell.innerText = 'Completed';
+        if (order.status !== 'paid') {
+          const btn = document.createElement('button');
+          btn.innerText = '✅ Mark Paid';
+          btn.className = 'mark-paid-btn';
+          btn.onclick = () => {
+            order.status = 'paid';
+            localStorage.setItem('imo_orders', JSON.stringify(orders));
+            renderAdminOrders();
+            showToast(`Order ${order.id} marked paid`);
+          };
+          actionCell.appendChild(btn);
+        } else actionCell.innerText = 'Completed';
       });
     }
 
@@ -1240,7 +1403,10 @@
         const div = document.createElement('div');
         div.className = 'setting-row';
         div.style.marginBottom = '0.5rem';
-        div.innerHTML = `<label style="min-width:100px;">${qty} Diamonds:</label><input type="number" id="rate_${qty}" value="${perDiamondRates[qty]}" step="0.01" min="0.5" style="width:100px;"><span>₹ per diamond → Pack price: ₹${Math.round(perDiamondRates[qty] * qty)}</span>`;
+        const currentRate = perDiamondRates[qty] || (qty === 10 ? 3.0 : qty === 50 ? 1.8 : 1.76);
+        div.innerHTML = `<label style="min-width:100px;">${qty} Diamonds:</label>
+                         <input type="number" id="rate_${qty}" value="${currentRate}" step="0.01" min="0.5" style="width:100px;">
+                         <span>₹ per diamond → Pack price: ₹${Math.round(currentRate * qty)}</span>`;
         container.appendChild(div);
       }
     }
@@ -1248,45 +1414,132 @@
     function saveAllPerDiamondRatesToFirebase() {
       for (let qty of packQuantities) {
         const input = document.getElementById(`rate_${qty}`);
-        if (input) { const newRate = parseFloat(input.value); if (!isNaN(newRate) && newRate > 0) perDiamondRates[qty] = newRate; }
+        if (input) {
+          const newRate = parseFloat(input.value);
+          if (!isNaN(newRate) && newRate > 0) perDiamondRates[qty] = newRate;
+        }
       }
       savePricesToFirebase();
     }
 
+    // Load stored orders
     const storedOrders = localStorage.getItem('imo_orders');
     if (storedOrders) orders = JSON.parse(storedOrders);
     const savedUpi = localStorage.getItem('imo_upi_id');
     if (savedUpi) CURRENT_UPI_ID = savedUpi;
-    const savedBasePrice = localStorage.getItem('imo_base_price');
-    if (savedBasePrice) BASE_PRICE_PER_DIAMOND = parseFloat(savedBasePrice);
 
-    generateCreditPacks();
-    loadPricesFromFirebase();
+    // Initialize Firebase data loading
+    loadPricesAndTickerFromFirebase();
 
-    function updateBasePrice(newPrice) { BASE_PRICE_PER_DIAMOND = newPrice; localStorage.setItem('imo_base_price', BASE_PRICE_PER_DIAMOND); document.getElementById('currentPriceDisplay').innerText = BASE_PRICE_PER_DIAMOND; showToast(`✅ Base price updated to ₹${BASE_PRICE_PER_DIAMOND}`); }
-    function updateUpiId(newUpiId) { if (!newUpiId || newUpiId.trim() === '') { showToast("❌ Invalid UPI ID"); return false; } CURRENT_UPI_ID = newUpiId.trim(); localStorage.setItem('imo_upi_id', CURRENT_UPI_ID); document.getElementById('upiIdDisplay').innerHTML = CURRENT_UPI_ID; document.getElementById('qrUpiId').innerHTML = CURRENT_UPI_ID; showToast(`✅ UPI ID updated to: ${CURRENT_UPI_ID}`); return true; }
+    function updateUpiId(newUpiId) {
+      if (!newUpiId || newUpiId.trim() === '') {
+        showToast("❌ Invalid UPI ID");
+        return false;
+      }
+      CURRENT_UPI_ID = newUpiId.trim();
+      localStorage.setItem('imo_upi_id', CURRENT_UPI_ID);
+      document.getElementById('upiIdDisplay').innerHTML = CURRENT_UPI_ID;
+      document.getElementById('qrUpiId').innerHTML = CURRENT_UPI_ID;
+      showToast(`✅ UPI ID updated to: ${CURRENT_UPI_ID}`);
+      return true;
+    }
 
+    // Admin panel handlers
     const adminModal = document.getElementById('adminModal');
     document.getElementById('adminToggleBtn').addEventListener('click', () => adminModal.classList.add('active'));
     document.getElementById('closeAdminModal').addEventListener('click', () => adminModal.classList.remove('active'));
+
     document.getElementById('adminLoginBtn').addEventListener('click', async () => {
       const email = document.getElementById('adminEmail').value.trim();
       const password = document.getElementById('adminPassword').value;
-      try { await auth.signInWithEmailAndPassword(email, password); document.getElementById('adminLoginSection').style.display = 'none'; document.getElementById('adminPanelSection').style.display = 'block'; renderAdminOrders(); renderPerDiamondRatesInAdmin(); document.getElementById('adminTickerMsg').value = tickerMessages.join(' | '); document.getElementById('adminUpiId').value = CURRENT_UPI_ID; document.getElementById('adminPricePerDiamond').value = BASE_PRICE_PER_DIAMOND; document.getElementById('currentPriceDisplay').innerText = BASE_PRICE_PER_DIAMOND; document.getElementById('adminError').innerText = ''; document.getElementById('adminToggleBtn').classList.add('logged-in'); } catch (err) { document.getElementById('adminError').innerText = 'Login failed: ' + err.message; }
+      try {
+        await auth.signInWithEmailAndPassword(email, password);
+        document.getElementById('adminLoginSection').style.display = 'none';
+        document.getElementById('adminPanelSection').style.display = 'block';
+        renderAdminOrders();
+        renderPerDiamondRatesInAdmin();
+        document.getElementById('adminTickerMsg').value = tickerMessages.join(' | ');
+        document.getElementById('adminUpiId').value = CURRENT_UPI_ID;
+        document.getElementById('adminError').innerText = '';
+        document.getElementById('adminToggleBtn').classList.add('logged-in');
+      } catch (err) {
+        document.getElementById('adminError').innerText = 'Login failed: ' + err.message;
+      }
     });
-    document.getElementById('adminLogoutBtn').addEventListener('click', async () => { await auth.signOut(); document.getElementById('adminLoginSection').style.display = 'block'; document.getElementById('adminPanelSection').style.display = 'none'; document.getElementById('adminEmail').value = ''; document.getElementById('adminPassword').value = ''; document.getElementById('adminToggleBtn').classList.remove('logged-in'); });
-    document.getElementById('updateUpiBtn').addEventListener('click', () => { const newUpi = document.getElementById('adminUpiId').value.trim(); updateUpiId(newUpi); });
-    document.getElementById('saveRatesBtn').addEventListener('click', () => { saveAllPerDiamondRatesToFirebase(); });
-    document.getElementById('updatePriceBtn').addEventListener('click', () => { const newPrice = parseFloat(document.getElementById('adminPricePerDiamond').value); if (!isNaN(newPrice) && newPrice > 0) updateBasePrice(newPrice); else showToast("❌ Invalid price value"); });
-    document.getElementById('updateTickerBtn').addEventListener('click', () => { const msg = document.getElementById('adminTickerMsg').value; if (msg) { tickerMessages.length = 0; tickerMessages.push(...msg.split('|').map(s => s.trim())); if (tickerMessages.length === 0) tickerMessages.push("✨ Pay0 Gateway • Fast Recharge"); showToast("Ticker updated!"); } });
-    document.getElementById('toggleMaintenanceBtn').addEventListener('click', () => { settings.maintenanceMode = !settings.maintenanceMode; localStorage.setItem('imo_maintenance_mode', settings.maintenanceMode); updateMaintenanceUI(); showToast(settings.maintenanceMode ? "Maintenance mode ON" : "Maintenance mode OFF"); });
-    auth.onAuthStateChanged((user) => { if (user) { document.getElementById('adminLoginSection').style.display = 'none'; document.getElementById('adminPanelSection').style.display = 'block'; renderAdminOrders(); renderPerDiamondRatesInAdmin(); document.getElementById('adminUpiId').value = CURRENT_UPI_ID; document.getElementById('adminPricePerDiamond').value = BASE_PRICE_PER_DIAMOND; document.getElementById('currentPriceDisplay').innerText = BASE_PRICE_PER_DIAMOND; document.getElementById('adminToggleBtn').classList.add('logged-in'); } else { document.getElementById('adminLoginSection').style.display = 'block'; document.getElementById('adminPanelSection').style.display = 'none'; document.getElementById('adminToggleBtn').classList.remove('logged-in'); } });
-    adminModal.addEventListener('click', (e) => { if (e.target === adminModal) adminModal.classList.remove('active'); });
-    const savedMaintenance = localStorage.getItem('imo_maintenance_mode'); if (savedMaintenance !== null) settings.maintenanceMode = savedMaintenance === 'true'; updateMaintenanceUI();
-    let tickerMessages = ["✨ Pay0 Gateway • Secure Payment", "💎 Best Diamond Rates", "⚡ Instant Recharge"];
+
+    document.getElementById('adminLogoutBtn').addEventListener('click', async () => {
+      await auth.signOut();
+      document.getElementById('adminLoginSection').style.display = 'block';
+      document.getElementById('adminPanelSection').style.display = 'none';
+      document.getElementById('adminEmail').value = '';
+      document.getElementById('adminPassword').value = '';
+      document.getElementById('adminToggleBtn').classList.remove('logged-in');
+    });
+
+    document.getElementById('updateUpiBtn').addEventListener('click', () => {
+      const newUpi = document.getElementById('adminUpiId').value.trim();
+      updateUpiId(newUpi);
+    });
+
+    document.getElementById('saveRatesBtn').addEventListener('click', () => {
+      saveAllPerDiamondRatesToFirebase();
+    });
+
+    document.getElementById('updateTickerBtn').addEventListener('click', () => {
+      const msg = document.getElementById('adminTickerMsg').value;
+      if (msg) {
+        tickerMessages = msg.split('|').map(s => s.trim());
+        if (tickerMessages.length === 0) tickerMessages = ["✨ Pay0 Gateway • Fast Recharge"];
+        tickerMessageString = tickerMessages.join(' | ');
+        updateTickerDisplay();
+        saveTickerToFirebase();
+        showToast("Ticker updated for all users!");
+      }
+    });
+
+    document.getElementById('toggleMaintenanceBtn').addEventListener('click', () => {
+      settings.maintenanceMode = !settings.maintenanceMode;
+      localStorage.setItem('imo_maintenance_mode', settings.maintenanceMode);
+      updateMaintenanceUI();
+      showToast(settings.maintenanceMode ? "Maintenance mode ON" : "Maintenance mode OFF");
+    });
+
+    auth.onAuthStateChanged((user) => {
+      if (user) {
+        document.getElementById('adminLoginSection').style.display = 'none';
+        document.getElementById('adminPanelSection').style.display = 'block';
+        renderAdminOrders();
+        renderPerDiamondRatesInAdmin();
+        document.getElementById('adminTickerMsg').value = tickerMessages.join(' | ');
+        document.getElementById('adminUpiId').value = CURRENT_UPI_ID;
+        document.getElementById('adminToggleBtn').classList.add('logged-in');
+      } else {
+        document.getElementById('adminLoginSection').style.display = 'block';
+        document.getElementById('adminPanelSection').style.display = 'none';
+        document.getElementById('adminToggleBtn').classList.remove('logged-in');
+      }
+    });
+
+    adminModal.addEventListener('click', (e) => {
+      if (e.target === adminModal) adminModal.classList.remove('active');
+    });
+
+    const savedMaintenance = localStorage.getItem('imo_maintenance_mode');
+    if (savedMaintenance !== null) settings.maintenanceMode = savedMaintenance === 'true';
+    updateMaintenanceUI();
+
+    // Ticker rotation
     let tickerIdx = 0;
-    setInterval(() => { const ticker = document.getElementById('tickerText'); if (ticker && tickerMessages.length && !settings.maintenanceMode) { tickerIdx = (tickerIdx + 1) % tickerMessages.length; ticker.innerText = tickerMessages[tickerIdx] + "   ⚡   " + tickerMessages[tickerIdx]; } }, 4000);
-    buildGrid(); updateUI();
+    setInterval(() => {
+      const ticker = document.getElementById('tickerText');
+      if (ticker && tickerMessages.length && !settings.maintenanceMode) {
+        tickerIdx = (tickerIdx + 1) % tickerMessages.length;
+        ticker.innerText = tickerMessages[tickerIdx] + "   ⚡   " + tickerMessages[tickerIdx];
+      }
+    }, 4000);
+
+    buildGrid();
+    updateUI();
   </script>
 </body>
 
