@@ -831,8 +831,14 @@
                 changed = true;
               }
             } else if (!perDiamondRates[qty]) {
-              // Set default if not exists
-              perDiamondRates[qty] = qty === 10 ? 3.0 : qty === 50 ? 1.8 : 1.76;
+              // Set default if not exists - UPDATED RATES FOR 50, 2000, 5000
+              if (qty === 50) {
+                perDiamondRates[qty] = 1.79;
+              } else if (qty === 2000 || qty === 5000) {
+                perDiamondRates[qty] = 1.75;
+              } else {
+                perDiamondRates[qty] = qty === 10 ? 3.0 : 1.76;
+              }
             }
           }
           if (changed) {
@@ -841,18 +847,30 @@
             updateUI();
             showToast("💰 Prices updated from server!");
           } else if (Object.keys(perDiamondRates).length === 0) {
-            // First load - set defaults
+            // First load - set defaults with UPDATED RATES
             for (let qty of packQuantities) {
-              perDiamondRates[qty] = qty === 10 ? 3.0 : qty === 50 ? 1.8 : 1.76;
+              if (qty === 50) {
+                perDiamondRates[qty] = 1.79;
+              } else if (qty === 2000 || qty === 5000) {
+                perDiamondRates[qty] = 1.75;
+              } else {
+                perDiamondRates[qty] = qty === 10 ? 3.0 : 1.76;
+              }
             }
             generateCreditPacks();
             buildGrid();
             updateUI();
           }
         } else {
-          // Set default rates if nothing in Firebase
+          // Set default rates if nothing in Firebase - UPDATED RATES FOR 50, 2000, 5000
           for (let qty of packQuantities) {
-            perDiamondRates[qty] = qty === 10 ? 3.0 : qty === 50 ? 1.8 : 1.76;
+            if (qty === 50) {
+              perDiamondRates[qty] = 1.79;
+            } else if (qty === 2000 || qty === 5000) {
+              perDiamondRates[qty] = 1.75;
+            } else {
+              perDiamondRates[qty] = qty === 10 ? 3.0 : 1.76;
+            }
           }
           generateCreditPacks();
           buildGrid();
@@ -896,7 +914,7 @@
     function generateCreditPacks() {
       creditPacks = [];
       for (let qty of packQuantities) {
-        let rate = perDiamondRates[qty] || (qty === 10 ? 3.0 : qty === 50 ? 1.8 : 1.76);
+        let rate = perDiamondRates[qty] || (qty === 10 ? 3.0 : qty === 50 ? 1.79 : (qty === 2000 || qty === 5000) ? 1.75 : 1.76);
         creditPacks.push({ qty: qty, price: Math.round(rate * qty) });
       }
       // Update lockedPackRate based on current quantity
@@ -921,7 +939,7 @@
     }
 
     function getPackRate(qty) {
-      return perDiamondRates[qty] || (qty === 10 ? 3.0 : qty === 50 ? 1.8 : 1.76);
+      return perDiamondRates[qty] || (qty === 10 ? 3.0 : qty === 50 ? 1.79 : (qty === 2000 || qty === 5000) ? 1.75 : 1.76);
     }
 
     // ========== POLLING FUNCTIONALITY ==========
@@ -1403,7 +1421,15 @@
         const div = document.createElement('div');
         div.className = 'setting-row';
         div.style.marginBottom = '0.5rem';
-        const currentRate = perDiamondRates[qty] || (qty === 10 ? 3.0 : qty === 50 ? 1.8 : 1.76);
+        let defaultRate;
+        if (qty === 50) {
+          defaultRate = 1.79;
+        } else if (qty === 2000 || qty === 5000) {
+          defaultRate = 1.75;
+        } else {
+          defaultRate = qty === 10 ? 3.0 : 1.76;
+        }
+        const currentRate = perDiamondRates[qty] || defaultRate;
         div.innerHTML = `<label style="min-width:100px;">${qty} Diamonds:</label>
                          <input type="number" id="rate_${qty}" value="${currentRate}" step="0.01" min="0.5" style="width:100px;">
                          <span>₹ per diamond → Pack price: ₹${Math.round(currentRate * qty)}</span>`;
