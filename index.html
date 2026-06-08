@@ -792,7 +792,7 @@
     // ========== CONFIGURATION ==========
     let CURRENT_UPI_ID = "5122057670745SB1024@mairtel";
     const MERCHANT_NAME = "Niraj Communication";
-    const WHATSAPP_NUMBER = "6203240682";
+    const WHATSAPP_NUMBER = "916203240682";
     const MIN_DIAMONDS = 10;
 
     // Define pack quantities
@@ -1115,8 +1115,29 @@
 
     function redirectToWhatsApp(orderData) {
       if (!orderData) return;
+
+      // Use the full number with 91 prefix - THIS WORKS with wa.me
+      const whatsappNumber = "916203240682";
+
       const msg = `Hello%2C%20I%20have%20completed%20payment%20for%20IMO%20recharge%0A%0A📌%20Order%20ID%3A%20${orderData.id}%0A👤%20IMO%20ID%3A%20${encodeURIComponent(orderData.imoId)}%0A💎%20Diamonds%3A%20${orderData.diamonds}%0A💰%20Amount%20Paid%3A%20₹${orderData.amount}%0A%0AUPI%20ID%3A%20${CURRENT_UPI_ID}%0A%0APlease%20verify%20and%20recharge%20manually.`;
-      window.location.href = `https://wa.me/${WHATSAPP_NUMBER}?text=${msg}`;
+
+      // Try multiple methods to ensure it works on mobile
+      const waUrl = `https://wa.me/${whatsappNumber}?text=${msg}`;
+
+      console.log('[WHATSAPP] Redirecting to:', waUrl);
+
+      // For mobile, try intent first, then fallback to wa.me
+      if (/Android/i.test(navigator.userAgent)) {
+        // Android - try intent
+        window.location.href = `intent://send/${whatsappNumber}#Intent;scheme=smsto;package=com.whatsapp;action=android.intent.action.SENDTO;end`;
+        setTimeout(() => {
+          // Fallback to wa.me if intent fails
+          window.location.href = waUrl;
+        }, 500);
+      } else {
+        // iOS or other - use wa.me
+        window.location.href = waUrl;
+      }
     }
 
     async function proceedToPayment() {
