@@ -11,14 +11,595 @@
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
   <style>
-    /* Your existing CSS remains exactly the same - keeping it compact for response */
-    *{margin:0;padding:0;box-sizing:border-box}body{font-family:'Segoe UI','Inter',system-ui,sans-serif;background:linear-gradient(145deg,#f0f4fe 0%,#e8edf8 100%);min-height:100vh;padding:1.5rem;position:relative}.glass-card{background:rgba(255,255,255,0.78);backdrop-filter:blur(16px);border-radius:2.2rem;border:1px solid rgba(255,255,255,0.9);box-shadow:0 20px 35px -12px rgba(0,0,0,0.08);max-width:600px;margin:0 auto 1.5rem;padding:1.8rem}.hero h1{font-size:2rem;background:linear-gradient(130deg,#4a1d6d,#7b2d8e,#9b4d96);-webkit-background-clip:text;background-clip:text;color:transparent}.input-with-help{display:flex;gap:0.5rem;align-items:center}.input-with-help input{flex:1;margin:0}.help-btn{width:48px;height:48px;border-radius:50%;background:linear-gradient(145deg,#eef2ff,#e2e8f0);border:1px solid #cbd5e6;font-size:1.3rem;font-weight:bold;color:#0a58ca;cursor:pointer;display:flex;align-items:center;justify-content:center}.diamond-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:1rem 0}.diamond-option{background:white;border-radius:1.2rem;padding:0.8rem 0.3rem;text-align:center;cursor:pointer;border:1px solid #cbd5e6;transition:all 0.2s}.diamond-option:hover{transform:translateY(-3px);border-color:#9b4d96;background:#faf0ff}.diamond-option.selected{background:linear-gradient(145deg,#f3e8ff,#e9d5ff);border-color:#7b2d8e}.diamond-icon{display:inline-block;background:radial-gradient(circle at 30% 35%,#c77dff,#7b2d8e,#4a1d6d);-webkit-background-clip:text;background-clip:text;color:transparent;font-size:1.3rem}.diamond-qty{font-size:1.2rem;font-weight:800;display:inline-flex;align-items:center;gap:4px;color:#1e293b}.diamond-price{font-size:0.7rem;font-weight:600;color:#2c3e66;margin-top:4px}.manual-control{background:#f8fafc;border-radius:1.5rem;padding:1rem;margin:0.5rem 0 1rem;border:1px solid #e2e8f0}.stepper-wrapper{display:flex;align-items:center;justify-content:space-between;background:white;border-radius:3rem;border:1px solid #cbd5e6;padding:0.2rem}.stepper-btn{background:linear-gradient(145deg,#f1f5f9,#e2e8f0);border:none;width:44px;height:44px;border-radius:40px;font-size:1.5rem;font-weight:bold;cursor:pointer;color:#7b2d8e}.manual-diamond-input{width:100px;text-align:center;font-size:1.2rem;font-weight:700;border:none;background:transparent;outline:none;color:#7b2d8e}input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}input,select,button{width:100%;padding:0.9rem;border-radius:1.6rem;border:1px solid #cbd5e6;margin:0.5rem 0;font-size:1rem}.btn-primary{background:linear-gradient(145deg,#7b2d8e,#4a1d6d);color:white;font-weight:bold;cursor:pointer;border:none}.btn-primary:disabled{opacity:0.6;cursor:not-allowed;background:#aaa}.btn-secondary{background:#eef2ff;color:#334155;border:1px solid #cbd5e6}.flex-row{display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap}.price-chip{background:#eef2ff;border-radius:2rem;padding:0.7rem;margin:0.5rem 0;display:flex;justify-content:space-between;font-weight:bold}.ticker-bar{background:#eef2ffcc;border-radius:2rem;padding:0.5rem;margin:1rem 0;overflow:hidden;white-space:nowrap}.ticker-scroll{display:inline-block;animation:slideTicker 22s linear infinite}@keyframes slideTicker{0%{transform:translateX(0%)}100%{transform:translateX(-50%)}}.whatsapp-float{position:fixed;bottom:1.5rem;right:1.5rem;background:#25D366;width:56px;height:56px;border-radius:30px;display:flex;align-items:center;justify-content:center;color:white;font-size:1.8rem;text-decoration:none;z-index:99;box-shadow:0 10px 20px rgba(0,0,0,0.15)}.toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#1f2937;color:white;padding:0.8rem 1.5rem;border-radius:2rem;z-index:1000;font-size:0.9rem;animation:fadeOut 2s ease forwards}@keyframes fadeOut{0%{opacity:1}70%{opacity:1}100%{opacity:0;visibility:hidden}}.modal-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);backdrop-filter:blur(8px);z-index:1000;display:flex;align-items:center;justify-content:center;opacity:0;visibility:hidden;transition:all 0.3s ease}.modal-overlay.active{opacity:1;visibility:visible}.modal-content{background:white;border-radius:2rem;max-width:500px;width:90%;padding:1.5rem;text-align:center;box-shadow:0 30px 50px rgba(0,0,0,0.3);animation:modalPop 0.3s ease;max-height:90vh;overflow-y:auto}@keyframes modalPop{from{transform:scale(0.9);opacity:0}to{transform:scale(1);opacity:1}}.qr-container{background:#f8fafc;border-radius:1rem;padding:1rem;text-align:center;margin:1rem 0;border:1px dashed #7b2d8e}.admin-badge{position:fixed;top:1rem;right:1rem;background:#7b2d8e;color:white;padding:0.5rem 1rem;border-radius:2rem;cursor:pointer;font-size:0.8rem;font-weight:bold;z-index:200;box-shadow:0 2px 8px rgba(0,0,0,0.2)}.admin-badge.logged-in{background:#10b981}table{width:100%;border-collapse:collapse;font-size:0.7rem}th,td{padding:0.5rem;border-bottom:1px solid #ddd;text-align:left}.status-paid{color:green;font-weight:bold}.status-pending{color:orange}.mark-paid-btn{background:#25D366;color:white;border:none;padding:0.2rem 0.5rem;border-radius:1rem;cursor:pointer}.loading-spinner{display:inline-block;width:16px;height:16px;border:2px solid #fff;border-radius:50%;border-top-color:transparent;animation:spin 0.6s linear infinite;margin-right:6px}@keyframes spin{to{transform:rotate(360deg)}}.setting-row{display:flex;gap:0.5rem;align-items:center;margin:0.5rem 0}.setting-row input{flex:2;margin:0}.setting-row button{flex:1;margin:0}.maintenance-alert{background-color:#ffebee;color:#c62828;text-align:center;padding:0.75rem;border-radius:1rem;margin-bottom:1rem;font-weight:bold;border:1px solid #ffcdd2;animation:pulse 1.5s infinite}@keyframes pulse{0%{opacity:0.8}50%{opacity:1;background-color:#ffcdd2}100%{opacity:0.8}}.success-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);backdrop-filter:blur(10px);z-index:2000;display:flex;align-items:center;justify-content:center;opacity:0;visibility:hidden;transition:all 0.5s ease}.success-overlay.active{opacity:1;visibility:visible}.success-card{background:linear-gradient(145deg,#ffffff,#f8fafc);border-radius:2rem;padding:2rem;text-align:center;max-width:350px;width:90%;animation:premiumPop 0.6s cubic-bezier(0.34,1.2,0.64,1);box-shadow:0 30px 50px rgba(0,0,0,0.3)}@keyframes premiumPop{from{transform:scale(0.7);opacity:0}80%{transform:scale(1.05)}100%{transform:scale(1);opacity:1}}.success-icon{width:80px;height:80px;background:linear-gradient(145deg,#10b981,#059669);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 1rem;animation:iconPulse 0.8s ease infinite alternate}@keyframes iconPulse{0%{transform:scale(1);box-shadow:0 0 0 0 rgba(16,185,129,0.4)}100%{transform:scale(1.05);box-shadow:0 0 0 15px rgba(16,185,129,0)}}.success-card h2{font-size:1.8rem;color:#1e293b;margin-bottom:0.5rem}.success-card p{color:#475569;margin-bottom:1rem}.success-details{background:#f1f5f9;border-radius:1rem;padding:0.8rem;margin:1rem 0;text-align:left;font-size:0.85rem}.whatsapp-redirect-btn{background:#25D366;color:white;border:none;padding:0.8rem 1.5rem;border-radius:2rem;font-weight:bold;cursor:pointer;width:100%;font-size:1rem;transition:0.2s}.status-polling{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.8);color:white;padding:8px 16px;border-radius:20px;font-size:12px;z-index:1000;display:none}@media (max-width:500px){.diamond-grid{grid-template-columns:repeat(3,1fr)}.glass-card{padding:1.2rem}.stepper-btn{width:38px;height:38px}.manual-diamond-input{width:90px}}
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', 'Inter', system-ui, sans-serif;
+      background: linear-gradient(145deg, #f0f4fe 0%, #e8edf8 100%);
+      min-height: 100vh;
+      padding: 1.5rem;
+      position: relative;
+    }
+
+    .glass-card {
+      background: rgba(255, 255, 255, 0.78);
+      backdrop-filter: blur(16px);
+      border-radius: 2.2rem;
+      border: 1px solid rgba(255, 255, 255, 0.9);
+      box-shadow: 0 20px 35px -12px rgba(0, 0, 0, 0.08);
+      max-width: 600px;
+      margin: 0 auto 1.5rem;
+      padding: 1.8rem;
+    }
+
+    .hero h1 {
+      font-size: 2rem;
+      background: linear-gradient(130deg, #4a1d6d, #7b2d8e, #9b4d96);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+
+    .input-with-help {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+    }
+
+    .input-with-help input {
+      flex: 1;
+      margin: 0;
+    }
+
+    .help-btn {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: linear-gradient(145deg, #eef2ff, #e2e8f0);
+      border: 1px solid #cbd5e6;
+      font-size: 1.3rem;
+      font-weight: bold;
+      color: #0a58ca;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .diamond-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin: 1rem 0;
+    }
+
+    .diamond-option {
+      background: white;
+      border-radius: 1.2rem;
+      padding: 0.8rem 0.3rem;
+      text-align: center;
+      cursor: pointer;
+      border: 1px solid #cbd5e6;
+      transition: all 0.2s;
+    }
+
+    .diamond-option:hover {
+      transform: translateY(-3px);
+      border-color: #9b4d96;
+      background: #faf0ff;
+    }
+
+    .diamond-option.selected {
+      background: linear-gradient(145deg, #f3e8ff, #e9d5ff);
+      border-color: #7b2d8e;
+    }
+
+    .diamond-icon {
+      display: inline-block;
+      background: radial-gradient(circle at 30% 35%, #c77dff, #7b2d8e, #4a1d6d);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      font-size: 1.3rem;
+    }
+
+    .diamond-qty {
+      font-size: 1.2rem;
+      font-weight: 800;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      color: #1e293b;
+    }
+
+    .diamond-price {
+      font-size: 0.7rem;
+      font-weight: 600;
+      color: #2c3e66;
+      margin-top: 4px;
+    }
+
+    .manual-control {
+      background: #f8fafc;
+      border-radius: 1.5rem;
+      padding: 1rem;
+      margin: 0.5rem 0 1rem;
+      border: 1px solid #e2e8f0;
+    }
+
+    .stepper-wrapper {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: white;
+      border-radius: 3rem;
+      border: 1px solid #cbd5e6;
+      padding: 0.2rem;
+    }
+
+    .stepper-btn {
+      background: linear-gradient(145deg, #f1f5f9, #e2e8f0);
+      border: none;
+      width: 44px;
+      height: 44px;
+      border-radius: 40px;
+      font-size: 1.5rem;
+      font-weight: bold;
+      cursor: pointer;
+      color: #7b2d8e;
+    }
+
+    .manual-diamond-input {
+      width: 100px;
+      text-align: center;
+      font-size: 1.2rem;
+      font-weight: 700;
+      border: none;
+      background: transparent;
+      outline: none;
+      color: #7b2d8e;
+    }
+
+    input[type=number]::-webkit-inner-spin-button,
+    input[type=number]::-webkit-outer-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+
+    input,
+    select,
+    button {
+      width: 100%;
+      padding: 0.9rem;
+      border-radius: 1.6rem;
+      border: 1px solid #cbd5e6;
+      margin: 0.5rem 0;
+      font-size: 1rem;
+    }
+
+    .btn-primary {
+      background: linear-gradient(145deg, #7b2d8e, #4a1d6d);
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+      border: none;
+    }
+
+    .btn-primary:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      background: #aaa;
+    }
+
+    .btn-secondary {
+      background: #eef2ff;
+      color: #334155;
+      border: 1px solid #cbd5e6;
+    }
+
+    .flex-row {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .price-chip {
+      background: #eef2ff;
+      border-radius: 2rem;
+      padding: 0.7rem;
+      margin: 0.5rem 0;
+      display: flex;
+      justify-content: space-between;
+      font-weight: bold;
+    }
+
+    .ticker-bar {
+      background: #eef2ffcc;
+      border-radius: 2rem;
+      padding: 0.5rem;
+      margin: 1rem 0;
+      overflow: hidden;
+      white-space: nowrap;
+    }
+
+    .ticker-scroll {
+      display: inline-block;
+      animation: slideTicker 22s linear infinite;
+    }
+
+    @keyframes slideTicker {
+      0% {
+        transform: translateX(0%);
+      }
+
+      100% {
+        transform: translateX(-50%);
+      }
+    }
+
+    .whatsapp-float {
+      position: fixed;
+      bottom: 1.5rem;
+      right: 1.5rem;
+      background: #25D366;
+      width: 56px;
+      height: 56px;
+      border-radius: 30px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 1.8rem;
+      text-decoration: none;
+      z-index: 99;
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 80px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #1f2937;
+      color: white;
+      padding: 0.8rem 1.5rem;
+      border-radius: 2rem;
+      z-index: 1000;
+      font-size: 0.9rem;
+      animation: fadeOut 2s ease forwards;
+    }
+
+    @keyframes fadeOut {
+      0% {
+        opacity: 1;
+      }
+
+      70% {
+        opacity: 1;
+      }
+
+      100% {
+        opacity: 0;
+        visibility: hidden;
+      }
+    }
+
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(8px);
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.3s ease;
+    }
+
+    .modal-overlay.active {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .modal-content {
+      background: white;
+      border-radius: 2rem;
+      max-width: 500px;
+      width: 90%;
+      padding: 1.5rem;
+      text-align: center;
+      box-shadow: 0 30px 50px rgba(0, 0, 0, 0.3);
+      animation: modalPop 0.3s ease;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+
+    @keyframes modalPop {
+      from {
+        transform: scale(0.9);
+        opacity: 0;
+      }
+
+      to {
+        transform: scale(1);
+        opacity: 1;
+      }
+    }
+
+    .qr-container {
+      background: #f8fafc;
+      border-radius: 1rem;
+      padding: 1rem;
+      text-align: center;
+      margin: 1rem 0;
+      border: 1px dashed #7b2d8e;
+    }
+
+    .admin-badge {
+      position: fixed;
+      top: 1rem;
+      right: 1rem;
+      background: #7b2d8e;
+      color: white;
+      padding: 0.5rem 1rem;
+      border-radius: 2rem;
+      cursor: pointer;
+      font-size: 0.8rem;
+      font-weight: bold;
+      z-index: 200;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    }
+
+    .admin-badge.logged-in {
+      background: #10b981;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.7rem;
+    }
+
+    th,
+    td {
+      padding: 0.5rem;
+      border-bottom: 1px solid #ddd;
+      text-align: left;
+    }
+
+    .status-paid {
+      color: green;
+      font-weight: bold;
+    }
+
+    .status-pending {
+      color: orange;
+    }
+
+    .mark-paid-btn {
+      background: #25D366;
+      color: white;
+      border: none;
+      padding: 0.2rem 0.5rem;
+      border-radius: 1rem;
+      cursor: pointer;
+    }
+
+    .loading-spinner {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid #fff;
+      border-radius: 50%;
+      border-top-color: transparent;
+      animation: spin 0.6s linear infinite;
+      margin-right: 6px;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .setting-row {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+      margin: 0.5rem 0;
+    }
+
+    .setting-row input {
+      flex: 2;
+      margin: 0;
+    }
+
+    .setting-row button {
+      flex: 1;
+      margin: 0;
+    }
+
+    .maintenance-alert {
+      background-color: #ffebee;
+      color: #c62828;
+      text-align: center;
+      padding: 0.75rem;
+      border-radius: 1rem;
+      margin-bottom: 1rem;
+      font-weight: bold;
+      border: 1px solid #ffcdd2;
+      animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse {
+      0% {
+        opacity: 0.8;
+      }
+
+      50% {
+        opacity: 1;
+        background-color: #ffcdd2;
+      }
+
+      100% {
+        opacity: 0.8;
+      }
+    }
+
+    .success-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.85);
+      backdrop-filter: blur(10px);
+      z-index: 2000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.5s ease;
+    }
+
+    .success-overlay.active {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .success-card {
+      background: linear-gradient(145deg, #ffffff, #f8fafc);
+      border-radius: 2rem;
+      padding: 2rem;
+      text-align: center;
+      max-width: 350px;
+      width: 90%;
+      animation: premiumPop 0.6s cubic-bezier(0.34, 1.2, 0.64, 1);
+      box-shadow: 0 30px 50px rgba(0, 0, 0, 0.3);
+    }
+
+    @keyframes premiumPop {
+      from {
+        transform: scale(0.7);
+        opacity: 0;
+      }
+
+      80% {
+        transform: scale(1.05);
+      }
+
+      100% {
+        transform: scale(1);
+        opacity: 1;
+      }
+    }
+
+    .success-icon {
+      width: 80px;
+      height: 80px;
+      background: linear-gradient(145deg, #10b981, #059669);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 1rem;
+      animation: iconPulse 0.8s ease infinite alternate;
+    }
+
+    @keyframes iconPulse {
+      0% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4);
+      }
+
+      100% {
+        transform: scale(1.05);
+        box-shadow: 0 0 0 15px rgba(16, 185, 129, 0);
+      }
+    }
+
+    .success-card h2 {
+      font-size: 1.8rem;
+      color: #1e293b;
+      margin-bottom: 0.5rem;
+    }
+
+    .success-card p {
+      color: #475569;
+      margin-bottom: 1rem;
+    }
+
+    .success-details {
+      background: #f1f5f9;
+      border-radius: 1rem;
+      padding: 0.8rem;
+      margin: 1rem 0;
+      text-align: left;
+      font-size: 0.85rem;
+    }
+
+    .whatsapp-redirect-btn {
+      background: #25D366;
+      color: white;
+      border: none;
+      padding: 0.8rem 1.5rem;
+      border-radius: 2rem;
+      font-weight: bold;
+      cursor: pointer;
+      width: 100%;
+      font-size: 1rem;
+      transition: 0.2s;
+    }
+
+    .status-polling {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0, 0, 0, 0.8);
+      color: white;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 12px;
+      z-index: 1000;
+      display: none;
+    }
+
+    @media (max-width: 500px) {
+      .diamond-grid {
+        grid-template-columns: repeat(3, 1fr);
+      }
+
+      .glass-card {
+        padding: 1.2rem;
+      }
+
+      .stepper-btn {
+        width: 38px;
+        height: 38px;
+      }
+
+      .manual-diamond-input {
+        width: 90px;
+      }
+    }
   </style>
 </head>
 
 <body>
 
-  <div class="admin-badge" id="adminToggleBtn">🔐 Admin Panel</div>
+  <div class="admin-badge" id="adminToggleBtn">🔐</div>
   <div class="status-polling" id="statusPollingBar">⏳ Checking payment status...</div>
 
   <div class="glass-card">
@@ -206,15 +787,18 @@
     // ========== PAY0 CONFIGURATION ==========
     const PAY0_API_URL = '/api/create-order';
     const PAY0_CHECK_URL = '/api/check-order-status';
-    const DUMMY_MOBILE = "916203240682";
+    const DUMMY_MOBILE = "6203240682";
 
     // ========== CONFIGURATION ==========
     let CURRENT_UPI_ID = "5122057670745SB1024@mairtel";
     const MERCHANT_NAME = "Niraj Communication";
-    const WHATSAPP_NUMBER = "916203240682";
+    const WHATSAPP_NUMBER = "6203240682";
     const MIN_DIAMONDS = 10;
 
+    // Define pack quantities
     const packQuantities = [10, 50, 100, 200, 500, 1000, 2000, 5000];
+
+    // These will be loaded from Firebase
     let perDiamondRates = {};
     let creditPacks = [];
     let tickerMessages = ["✨ Pay0 Gateway • Secure Payment", "💎 Best Diamond Rates", "⚡ Instant Recharge"];
@@ -228,68 +812,94 @@
     let paymentCompleted = false;
     let settings = { maintenanceMode: false };
     let orders = [];
+    let currentAdmin = null;
     let lockedPackRate = 1.76;
     let lockedPackQty = 100;
 
-    // ========== PERSISTENT ORDER TRACKING FOR MOBILE ==========
-    let pendingOrderForMobile = null;
-
-    // ========== LOAD PRICES FROM FIREBASE ==========
-    function loadPricesFromFirebase() {
-      const ratesRef = db.ref('perDiamondRates');
-      ratesRef.once('value', (snapshot) => {
-        const data = snapshot.val();
-        if (data && Object.keys(data).length > 0) {
-          for (let qty of packQuantities) {
-            if (data[qty] !== undefined && !isNaN(data[qty]) && data[qty] > 0) {
-              perDiamondRates[qty] = data[qty];
-            }
-          }
-        } else {
-          // First time - set defaults and save to Firebase (UPDATED RATES FOR 50, 2000, 5000)
-          for (let qty of packQuantities) {
-            if (qty === 50) perDiamondRates[qty] = 1.79;
-            else if (qty === 2000 || qty === 5000) perDiamondRates[qty] = 1.75;
-            else if (qty === 10) perDiamondRates[qty] = 3.0;
-            else perDiamondRates[qty] = 1.76;
-          }
-          db.ref('perDiamondRates').set(perDiamondRates);
-        }
-        generateCreditPacks();
-        buildGrid();
-        updateUI();
-      });
-    }
-
-    // Listen for real-time price updates from Firebase (for admin changes)
-    function listenForPriceUpdates() {
+    // ========== LOAD PRICES AND TICKER FROM FIREBASE ==========
+    function loadPricesAndTickerFromFirebase() {
+      // Load diamond rates
       const ratesRef = db.ref('perDiamondRates');
       ratesRef.on('value', (snapshot) => {
         const data = snapshot.val();
         if (data && Object.keys(data).length > 0) {
           let changed = false;
           for (let qty of packQuantities) {
-            if (data[qty] !== undefined && !isNaN(data[qty]) && data[qty] > 0 && perDiamondRates[qty] !== data[qty]) {
-              perDiamondRates[qty] = data[qty];
-              changed = true;
+            if (data[qty] !== undefined && !isNaN(data[qty]) && data[qty] > 0) {
+              if (perDiamondRates[qty] !== data[qty]) {
+                perDiamondRates[qty] = data[qty];
+                changed = true;
+              }
+            } else if (!perDiamondRates[qty]) {
+              // Set default if not exists
+              perDiamondRates[qty] = qty === 10 ? 3.0 : qty === 50 ? 1.8 : 1.76;
             }
           }
           if (changed) {
             generateCreditPacks();
             buildGrid();
             updateUI();
-            showToast("💰 Prices updated by admin!");
+            showToast("💰 Prices updated from server!");
+          } else if (Object.keys(perDiamondRates).length === 0) {
+            // First load - set defaults
+            for (let qty of packQuantities) {
+              perDiamondRates[qty] = qty === 10 ? 3.0 : qty === 50 ? 1.8 : 1.76;
+            }
+            generateCreditPacks();
+            buildGrid();
+            updateUI();
           }
+        } else {
+          // Set default rates if nothing in Firebase
+          for (let qty of packQuantities) {
+            perDiamondRates[qty] = qty === 10 ? 3.0 : qty === 50 ? 1.8 : 1.76;
+          }
+          generateCreditPacks();
+          buildGrid();
+          updateUI();
+          // Save defaults to Firebase for future use
+          db.ref('perDiamondRates').set(perDiamondRates);
         }
       });
+
+      // Load ticker messages
+      const tickerRef = db.ref('tickerMessages');
+      tickerRef.on('value', (snapshot) => {
+        const data = snapshot.val();
+        if (data && data.messages && Array.isArray(data.messages) && data.messages.length > 0) {
+          tickerMessages = data.messages;
+          tickerMessageString = tickerMessages.join(' | ');
+          updateTickerDisplay();
+        } else if (data && typeof data === 'string') {
+          // Handle string format
+          tickerMessageString = data;
+          tickerMessages = data.split('|').map(s => s.trim());
+          updateTickerDisplay();
+        } else {
+          // Default ticker
+          tickerMessages = ["✨ Pay0 Gateway • Secure Payment", "💎 Best Diamond Rates", "⚡ Instant Recharge"];
+          tickerMessageString = tickerMessages.join(' | ');
+          updateTickerDisplay();
+          // Save default to Firebase
+          db.ref('tickerMessages').set({ messages: tickerMessages });
+        }
+      });
+    }
+
+    function updateTickerDisplay() {
+      const tickerElement = document.getElementById('tickerText');
+      if (tickerElement) {
+        tickerElement.innerText = tickerMessageString;
+      }
     }
 
     function generateCreditPacks() {
       creditPacks = [];
       for (let qty of packQuantities) {
-        let rate = perDiamondRates[qty] || 1.76;
+        let rate = perDiamondRates[qty] || (qty === 10 ? 3.0 : qty === 50 ? 1.8 : 1.76);
         creditPacks.push({ qty: qty, price: Math.round(rate * qty) });
       }
+      // Update lockedPackRate based on current quantity
       lockedPackRate = getPackRate(lockedPackQty);
     }
 
@@ -297,55 +907,39 @@
       const ratesRef = db.ref('perDiamondRates');
       ratesRef.set(perDiamondRates)
         .then(() => showToast("✅ Prices saved to Firebase (all users can see)"))
-        .catch(err => showToast("Error saving: " + err.message));
-    }
-
-    function getPackRate(qty) {
-      return perDiamondRates[qty] || 1.76;
-    }
-
-    // ========== TICKER FUNCTIONS ==========
-    function loadTickerFromFirebase() {
-      const tickerRef = db.ref('tickerMessages');
-      tickerRef.on('value', (snapshot) => {
-        const data = snapshot.val();
-        if (data && data.messages && Array.isArray(data.messages) && data.messages.length > 0) {
-          tickerMessages = data.messages;
-          tickerMessageString = tickerMessages.join(' | ');
-        } else if (data && typeof data === 'string') {
-          tickerMessageString = data;
-          tickerMessages = data.split('|').map(s => s.trim());
-        } else {
-          tickerMessages = ["✨ Pay0 Gateway • Secure Payment", "💎 Best Diamond Rates", "⚡ Instant Recharge"];
-          tickerMessageString = tickerMessages.join(' | ');
-          db.ref('tickerMessages').set({ messages: tickerMessages });
-        }
-        updateTickerDisplay();
-      });
-    }
-
-    function updateTickerDisplay() {
-      const tickerElement = document.getElementById('tickerText');
-      if (tickerElement) tickerElement.innerText = tickerMessageString;
+        .catch(err => {
+          console.error('Firebase error details:', err);
+          showToast("Error saving: " + err.message + " - Please check if you're logged in as admin");
+        });
     }
 
     function saveTickerToFirebase() {
-      db.ref('tickerMessages').set({ messages: tickerMessages })
-        .then(() => showToast("✅ Ticker saved to Firebase"))
-        .catch(err => showToast("Error: " + err.message));
+      const tickerRef = db.ref('tickerMessages');
+      tickerRef.set({ messages: tickerMessages })
+        .then(() => showToast("✅ Ticker message saved to Firebase"))
+        .catch(err => showToast("Error saving ticker: " + err.message));
+    }
+
+    function getPackRate(qty) {
+      return perDiamondRates[qty] || (qty === 10 ? 3.0 : qty === 50 ? 1.8 : 1.76);
     }
 
     // ========== POLLING FUNCTIONALITY ==========
     let statusPollingInterval = null;
+    let currentPollingOrderId = null;
     let pollingAttempts = 0;
-    const MAX_POLLING_ATTEMPTS = 40;
+    const MAX_POLLING_ATTEMPTS = 60;
     const POLLING_INTERVAL_MS = 3000;
 
     function showPollingStatus(show, message = "⏳ Checking payment status...") {
       const pollingBar = document.getElementById('statusPollingBar');
       if (pollingBar) {
-        pollingBar.style.display = show ? 'block' : 'none';
-        if (show) pollingBar.innerHTML = message;
+        if (show) {
+          pollingBar.style.display = 'block';
+          pollingBar.innerHTML = message;
+        } else {
+          pollingBar.style.display = 'none';
+        }
       }
     }
 
@@ -354,6 +948,7 @@
         clearInterval(statusPollingInterval);
         statusPollingInterval = null;
       }
+      currentPollingOrderId = null;
       pollingAttempts = 0;
       showPollingStatus(false);
       console.log('[POLLING] Stopped');
@@ -369,40 +964,52 @@
         const data = await response.json();
         console.log(`[POLLING] Attempt ${pollingAttempts}/${MAX_POLLING_ATTEMPTS} for ${orderId}:`, data);
         showPollingStatus(true, `⏳ Checking payment... (${pollingAttempts}/${MAX_POLLING_ATTEMPTS})`);
-
         const isSuccess = (data.status === 'COMPLETED') || (data.status === 'SUCCESS') ||
           (data.status === true && data.result?.txnStatus === 'SUCCESS') ||
           (data.result?.status === 'success') || (data.payment_status === 'success');
-
         if (isSuccess) {
           console.log(`[POLLING] ✅ Payment SUCCESS for ${orderId}!`);
           stopPolling();
-          if (orderData) showSuccessAndRedirectToWhatsApp(orderData);
-          else if (currentOrder) showSuccessAndRedirectToWhatsApp(currentOrder);
+          if (orderData) {
+            showSuccessAndRedirectToWhatsApp(orderData);
+          } else if (currentOrder) {
+            showSuccessAndRedirectToWhatsApp(currentOrder);
+          }
           return true;
+        }
+        const isFailed = (data.status === 'FAILED') || (data.result?.txnStatus === 'FAILED') ||
+          (data.payment_status === 'failed');
+        if (isFailed) {
+          console.log(`[POLLING] ❌ Payment FAILED for ${orderId}`);
+          stopPolling();
+          showToast("❌ Payment failed. Please try again.");
+          return false;
         }
         return null;
       } catch (error) {
-        console.error('[POLLING] Error:', error);
+        console.error('[POLLING] Error checking status:', error);
         return null;
       }
     }
 
     function startPollingOrderStatus(orderId, orderData) {
       stopPolling();
+      currentPollingOrderId = orderId;
       pollingAttempts = 0;
       showPollingStatus(true, "⏳ Payment initiated. Verifying transaction...");
       console.log(`[POLLING] Started for order: ${orderId}`);
-
       statusPollingInterval = setInterval(async () => {
         pollingAttempts++;
         if (pollingAttempts >= MAX_POLLING_ATTEMPTS) {
-          console.log(`[POLLING] Timeout for ${orderId}`);
+          console.log(`[POLLING] Timeout after ${MAX_POLLING_ATTEMPTS} attempts for ${orderId}`);
           stopPolling();
-          showToast("⚠️ Payment verification timeout. Please contact support. Order ID: " + orderId);
+          showToast("⚠️ Payment verification timeout. Please contact support with your Order ID: " + orderId);
           return;
         }
-        await checkPaymentStatus(orderId, orderData);
+        const result = await checkPaymentStatus(orderId, orderData);
+        if (result === true || result === false) {
+          return;
+        }
       }, POLLING_INTERVAL_MS);
     }
 
@@ -491,8 +1098,14 @@
           currentQty = pack.qty;
           lockedPackRate = getPackRate(pack.qty);
           lockedPackQty = pack.qty;
-          const stepMap = { 10: 10, 50: 50, 100: 100, 200: 200, 500: 500, 1000: 1000, 2000: 2000, 5000: 5000 };
-          currentStepValue = stepMap[pack.qty] || 10;
+          if (pack.qty === 10) currentStepValue = 10;
+          else if (pack.qty === 50) currentStepValue = 50;
+          else if (pack.qty === 100) currentStepValue = 100;
+          else if (pack.qty === 200) currentStepValue = 200;
+          else if (pack.qty === 500) currentStepValue = 500;
+          else if (pack.qty === 1000) currentStepValue = 1000;
+          else if (pack.qty === 2000) currentStepValue = 2000;
+          else if (pack.qty === 5000) currentStepValue = 5000;
           updateUI();
           document.getElementById('manualQty').value = pack.qty;
         };
@@ -506,36 +1119,15 @@
       window.location.href = `https://wa.me/${WHATSAPP_NUMBER}?text=${msg}`;
     }
 
-    // ========== CHECK FOR PENDING ORDER ON PAGE LOAD (Mobile Fix) ==========
-    function checkForPendingOrderOnLoad() {
-      const savedOrderJson = localStorage.getItem('pendingOrderForMobile');
-      if (savedOrderJson) {
-        try {
-          const savedOrder = JSON.parse(savedOrderJson);
-          const elapsed = Date.now() - savedOrder.timestamp;
-          if (elapsed < 600000) {
-            console.log('[MOBILE] Found pending order, checking status...', savedOrder);
-            showToast("Checking payment status...");
-            startPollingOrderStatus(savedOrder.id, savedOrder);
-          } else {
-            localStorage.removeItem('pendingOrderForMobile');
-          }
-        } catch(e) { console.error(e); }
-      }
-    }
-
     async function proceedToPayment() {
       if (settings.maintenanceMode) { showToast("🔧 Maintenance mode active."); return; }
       if (currentQty < MIN_DIAMONDS) { showToast(`❌ Minimum ${MIN_DIAMONDS} diamonds required.`); return; }
       const imoId = document.getElementById('imoId').value.trim();
       if (!imoId || imoId.length < 3) { showToast("❌ Please enter valid IMO ID"); return; }
       const orderId = generateOrderId();
-      currentOrder = { id: orderId, imoId: imoId, diamonds: currentQty, amount: currentAmount, mobile: DUMMY_MOBILE, status: 'pending', timestamp: Date.now() };
+      currentOrder = { id: orderId, imoId: imoId, diamonds: currentQty, amount: currentAmount, mobile: DUMMY_MOBILE, status: 'pending' };
       orders.unshift(currentOrder);
       localStorage.setItem('imo_orders', JSON.stringify(orders));
-      
-      localStorage.setItem('pendingOrderForMobile', JSON.stringify(currentOrder));
-      
       const rechargeBtn = document.getElementById('rechargeBtn');
       rechargeBtn.disabled = true;
       rechargeBtn.innerHTML = `<span class="loading-spinner"></span> Creating order...`;
@@ -553,10 +1145,11 @@
           sessionStorage.setItem('pendingOrder', JSON.stringify(currentOrder));
           startPollingOrderStatus(orderId, currentOrder);
           window.open(data.result.payment_url, '_blank');
-          showToast("Payment page opened. Complete payment there.");
+          showToast("Payment page opened in new tab. Complete payment there.");
           rechargeBtn.disabled = false;
           rechargeBtn.innerHTML = "🚀 Proceed to Pay";
-        } else {
+        }
+        else {
           showToast("Payment Error: " + (data.message || "Unknown error"));
           rechargeBtn.disabled = false;
           rechargeBtn.innerHTML = "🚀 Proceed to Pay";
@@ -570,9 +1163,6 @@
 
     function showSuccessAndRedirectToWhatsApp(order) {
       stopPolling();
-      localStorage.removeItem('pendingOrderForMobile');
-      sessionStorage.removeItem('pendingOrder');
-      
       const orderDetails = `<p><strong>Order ID:</strong> ${order.id}</p><p><strong>IMO ID:</strong> ${order.imoId}</p><p><strong>💎 Diamonds:</strong> ${order.diamonds}</p><p><strong>💰 Amount:</strong> ₹${order.amount}</p>`;
       document.getElementById('successOrderDetails').innerHTML = orderDetails;
       document.getElementById('successOverlay').classList.add('active');
@@ -603,8 +1193,82 @@
       return false;
     }
 
+    function openUpiPayment() {
+      if (settings.maintenanceMode) { showToast("🔧 Maintenance mode active."); return; }
+      if (!currentOrder) { showToast("Please create order first"); return; }
+      if (paymentInitiated) { showToast("Payment already initiated"); return; }
+      paymentInitiated = true;
+      const upiLink = generateUpiLink(currentOrder.amount);
+      const payNowBtn = document.getElementById('payNowBtn');
+      const originalText = payNowBtn.innerHTML;
+      payNowBtn.innerHTML = `<span class="loading-spinner"></span> Opening UPI...`;
+      payNowBtn.disabled = true;
+      sessionStorage.setItem('upiStartTime', Date.now().toString());
+      sessionStorage.setItem('pendingOrderId', currentOrder.id);
+      sessionStorage.setItem('pendingOrderData', JSON.stringify(currentOrder));
+      localStorage.setItem('pendingOrderDataBackup', JSON.stringify(currentOrder));
+      const isAndroid = /Android/i.test(navigator.userAgent);
+      if (isAndroid) {
+        window.location.href = `intent://pay?${upiLink.split("?")[1]}#Intent;scheme=upi;end`;
+      } else {
+        window.location.href = upiLink;
+      }
+      setTimeout(() => {
+        if (paymentInitiated && !paymentCompleted) {
+          paymentInitiated = false;
+          payNowBtn.innerHTML = originalText;
+          payNowBtn.disabled = false;
+        }
+      }, 60000);
+    }
+
+    function generateUpiLink(amount) {
+      const txnRef = "TXN" + Date.now();
+      return `upi://pay?pa=${encodeURIComponent(CURRENT_UPI_ID)}&pn=${encodeURIComponent(MERCHANT_NAME)}&tr=${txnRef}&am=${amount.toFixed(2)}&cu=INR&mc=5816`;
+    }
+
+    function checkReturnAndRedirectToWhatsApp() {
+      const startTime = sessionStorage.getItem('upiStartTime');
+      const pendingOrderId = sessionStorage.getItem('pendingOrderId');
+      let pendingOrderData = sessionStorage.getItem('pendingOrderData');
+      if (!pendingOrderData) pendingOrderData = localStorage.getItem('pendingOrderDataBackup');
+      if (startTime && pendingOrderId && pendingOrderData && paymentInitiated && !paymentCompleted) {
+        const elapsed = Date.now() - parseInt(startTime);
+        if (elapsed > 1000) {
+          paymentCompleted = true;
+          paymentInitiated = false;
+          let order = null;
+          try { order = JSON.parse(pendingOrderData); } catch (e) { }
+          if (!order && currentOrder) order = currentOrder;
+          sessionStorage.removeItem('upiStartTime');
+          sessionStorage.removeItem('pendingOrderId');
+          sessionStorage.removeItem('pendingOrderData');
+          localStorage.removeItem('pendingOrderDataBackup');
+          document.getElementById('paymentModal')?.classList.remove('active');
+          if (order) showSuccessAndRedirectToWhatsApp(order);
+          const payNowBtn = document.getElementById('payNowBtn');
+          if (payNowBtn) {
+            payNowBtn.innerHTML = `💸 Pay Now`;
+            payNowBtn.disabled = false;
+          }
+          return true;
+        }
+      }
+      return false;
+    }
+
+    async function copyToClipboard(text) {
+      try {
+        await navigator.clipboard.writeText(text);
+        showToast("✅ UPI ID copied!");
+      } catch {
+        prompt("Copy this UPI ID:", text);
+      }
+    }
+
     // ========== EVENT LISTENERS ==========
     const manualQtyInput = document.getElementById('manualQty');
+
     function updateFromManualInput() {
       let qty = parseInt(manualQtyInput.value, 10);
       if (isNaN(qty)) qty = 1;
@@ -617,10 +1281,13 @@
       currentQty = qty;
       currentAmount = getPriceForQuantity(currentQty);
       document.getElementById('amountDisplay').innerHTML = `₹${currentAmount}`;
+      let matched = false;
       document.querySelectorAll('.diamond-option').forEach(el => {
         const q = parseInt(el.dataset.qty);
-        if (q === currentQty) el.classList.add('selected');
-        else el.classList.remove('selected');
+        if (q === currentQty) {
+          el.classList.add('selected');
+          matched = true;
+        } else el.classList.remove('selected');
       });
       updateProceedButtonState();
     }
@@ -640,7 +1307,7 @@
       manualQtyInput.value = newVal;
       updateFromManualInput();
     });
-    document.getElementById('imoId').addEventListener('input', function(e) {
+    document.getElementById('imoId').addEventListener('input', function (e) {
       this.value = this.value.replace(/[^0-9]/g, '');
     });
     document.getElementById('rechargeBtn').addEventListener('click', proceedToPayment);
@@ -652,17 +1319,11 @@
     document.getElementById('closeQrModal').addEventListener('click', () => {
       document.getElementById('qrModal').classList.remove('active');
     });
-    
-    async function copyToClipboard(text) {
-      try {
-        await navigator.clipboard.writeText(text);
-        showToast("✅ UPI ID copied!");
-      } catch {
-        prompt("Copy this UPI ID:", text);
-      }
-    }
+    document.addEventListener('click', (e) => {
+      if (e.target && e.target.id === 'payNowBtn') openUpiPayment();
+    });
+    window.showQrMethod = () => document.getElementById('qrModal').classList.add('active');
 
-    // ========== TUTORIAL & HELP ==========
     function openTutorial() { document.getElementById('tutorialModal').classList.add('active'); }
     function closeTutorial() { document.getElementById('tutorialModal').classList.remove('active'); }
     document.getElementById('helpBtn').addEventListener('click', openTutorial);
@@ -670,12 +1331,41 @@
     document.getElementById('tutorialModal').addEventListener('click', (e) => {
       if (e.target === e.currentTarget) closeTutorial();
     });
+    document.getElementById('paymentModal').addEventListener('click', (e) => {
+      if (e.target === e.currentTarget && !paymentInitiated) document.getElementById('paymentModal').classList.remove('active');
+    });
+    document.getElementById('qrModal').addEventListener('click', (e) => {
+      if (e.target === e.currentTarget) document.getElementById('qrModal').classList.remove('active');
+    });
     document.getElementById('helpWhatsAppBtn').addEventListener('click', () => window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=Hello%20need%20help`, '_blank'));
     document.getElementById('floatWhatsApp').addEventListener('click', (e) => {
       e.preventDefault();
       window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=Hello%20need%20help`, '_blank');
     });
     document.getElementById('joinImoBtn').addEventListener('click', () => window.open('https://s.imoim.net/8czyd5', '_blank'));
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden && paymentInitiated) checkReturnAndRedirectToWhatsApp();
+    });
+    window.addEventListener('focus', () => {
+      if (paymentInitiated) checkReturnAndRedirectToWhatsApp();
+    });
+    window.addEventListener('pageshow', () => {
+      if (paymentInitiated) checkReturnAndRedirectToWhatsApp();
+    });
+
+    window.addEventListener('load', () => {
+      const successShown = checkPaymentSuccess();
+      if (!successShown) {
+        const pendingData = sessionStorage.getItem('pendingOrderData') || localStorage.getItem('pendingOrderDataBackup');
+        if (pendingData && sessionStorage.getItem('upiStartTime') && Date.now() - parseInt(sessionStorage.getItem('upiStartTime')) > 2000) {
+          paymentInitiated = true;
+          checkReturnAndRedirectToWhatsApp();
+        }
+      }
+    });
+    document.getElementById('successOverlay').addEventListener('click', function (e) {
+      if (e.target === this) this.classList.remove('active');
+    });
 
     // ========== ADMIN FUNCTIONS ==========
     function renderAdminOrders() {
@@ -710,18 +1400,10 @@
       if (!container) return;
       container.innerHTML = '';
       for (let qty of packQuantities) {
-        let defaultRate;
-        if (qty === 50) {
-          defaultRate = 1.79;
-        } else if (qty === 2000 || qty === 5000) {
-          defaultRate = 1.75;
-        } else {
-          defaultRate = qty === 10 ? 3.0 : 1.76;
-        }
-        const currentRate = perDiamondRates[qty] || defaultRate;
         const div = document.createElement('div');
         div.className = 'setting-row';
         div.style.marginBottom = '0.5rem';
+        const currentRate = perDiamondRates[qty] || (qty === 10 ? 3.0 : qty === 50 ? 1.79 : 1.76);
         div.innerHTML = `<label style="min-width:100px;">${qty} Diamonds:</label>
                          <input type="number" id="rate_${qty}" value="${currentRate}" step="0.01" min="0.5" style="width:100px;">
                          <span>₹ per diamond → Pack price: ₹${Math.round(currentRate * qty)}</span>`;
@@ -745,6 +1427,9 @@
     if (storedOrders) orders = JSON.parse(storedOrders);
     const savedUpi = localStorage.getItem('imo_upi_id');
     if (savedUpi) CURRENT_UPI_ID = savedUpi;
+
+    // Initialize Firebase data loading
+    loadPricesAndTickerFromFirebase();
 
     function updateUpiId(newUpiId) {
       if (!newUpiId || newUpiId.trim() === '') {
@@ -853,26 +1538,8 @@
       }
     }, 4000);
 
-    // Initialize
-    loadPricesFromFirebase();
-    listenForPriceUpdates();
-    loadTickerFromFirebase();
     buildGrid();
     updateUI();
-    
-    checkForPendingOrderOnLoad();
-    
-    document.addEventListener('visibilitychange', () => {
-      if (!document.hidden) {
-        console.log('[MOBILE] Page became visible, checking for pending order');
-        checkForPendingOrderOnLoad();
-      }
-    });
-    
-    window.addEventListener('pageshow', () => {
-      console.log('[MOBILE] Page shown, checking for pending order');
-      checkForPendingOrderOnLoad();
-    });
   </script>
 </body>
 
