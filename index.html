@@ -1125,11 +1125,21 @@
             if (!orderData) return;
 
             const whatsappNumber = "916203240682";
-
             const msg = `Hello%2C%20I%20have%20completed%20payment%20for%20IMO%20recharge%0A%0A📌%20Order%20ID%3A%20${orderData.id}%0A👤%20IMO%20ID%3A%20${encodeURIComponent(orderData.imoId)}%0A💎%20Diamonds%3A%20${orderData.diamonds}%0A💰%20Amount%20Paid%3A%20₹${orderData.amount}%0A%0AUPI%20ID%3A%20${CURRENT_UPI_ID}%0A%0APlease%20verify%20and%20recharge%20manually.`;
 
-            // Use whatsapp:// protocol - opens directly without confirmation popup
-            window.location.href = `whatsapp://send?phone=${whatsappNumber}&text=${msg}`;
+            // Create a hidden anchor element
+            const link = document.createElement('a');
+            link.href = `whatsapp://send?phone=${whatsappNumber}&text=${msg}`;
+            link.style.display = 'none';
+            document.body.appendChild(link);
+
+            // Programmatically click the link - Chrome treats this as user interaction
+            link.click();
+
+            // Clean up - remove the element after a short delay
+            setTimeout(() => {
+                document.body.removeChild(link);
+            }, 100);
         }
 
         async function proceedToPayment() {
