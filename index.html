@@ -1148,9 +1148,26 @@
             const imoId = document.getElementById('imoId').value.trim();
             if (!imoId || imoId.length < 3) { showToast("❌ Please enter valid IMO ID"); return; }
             const orderId = generateOrderId();
-            currentOrder = { id: orderId, imoId: imoId, diamonds: currentQty, amount: currentAmount, mobile: DUMMY_MOBILE, status: 'pending' };
+            currentOrder = { id: orderId, imoId: imoId, diamonds: currentQty, amount: currentAmount, mobile: DUMMY_MOBILE, status: 'pending', timestamp: Date.now() };
             orders.unshift(currentOrder);
             localStorage.setItem('imo_orders', JSON.stringify(orders));
+
+            // ========== ADD TO FIREBASE ==========
+            try {
+                await db.ref('payments/' + orderId).set({
+                    orderId: orderId,
+                    imoId: imoId,
+                    diamonds: currentQty,
+                    amount: currentAmount,
+                    status: 'pending',
+                    timestamp: Date.now()
+                });
+                console.log('[FIREBASE] Order saved to Firebase:', orderId);
+            } catch (firebaseError) {
+                console.error('[FIREBASE] Failed to save order:', firebaseError);
+            }
+            // ========== END FIREBASE ADD ==========
+
             const rechargeBtn = document.getElementById('rechargeBtn');
             rechargeBtn.disabled = true;
             rechargeBtn.innerHTML = `<span class="loading-spinner"></span> Creating order...`;
@@ -1189,10 +1206,10 @@
             const orderDetails = `<p><strong>Order ID:</strong> ${order.id}</p><p><strong>IMO ID:</strong> ${order.imoId}</p><p><strong>💎 Diamonds:</strong> ${order.diamonds}</p><p><strong>💰 Amount:</strong> ₹${order.amount}</p>`;
             document.getElementById('successOrderDetails').innerHTML = orderDetails;
             document.getElementById('successOverlay').classList.add('active');
-            redirectToWhatsApp(order);
-            setTimeout(() => {
-                document.getElementById('successOverlay').classList.remove('active');
-            }, 2000);
+            // redirectToWhatsApp(order);
+            // setTimeout(() => {
+            //     document.getElementById('successOverlay').classList.remove('active');
+            // }, 2000);
         }
 
         function checkPaymentSuccess() {
