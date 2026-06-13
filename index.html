@@ -893,6 +893,71 @@
                 }
             });
         }
+        // ========== MAINTENANCE MODE LISTENER ==========
+        db.ref('maintenanceMode').on('value', (snapshot) => {
+            const isMaintenance = snapshot.val() === true;
+            const maintenanceAlert = document.getElementById('maintenanceAlert');
+            const rechargeBtn = document.getElementById('rechargeBtn');
+            const diamondOptions = document.querySelectorAll('.diamond-option');
+            const manualQty = document.getElementById('manualQty');
+            const decrementBtn = document.getElementById('decrementBtn');
+            const incrementBtn = document.getElementById('incrementBtn');
+
+            if (isMaintenance) {
+                // Show maintenance alert
+                if (maintenanceAlert) {
+                    maintenanceAlert.style.display = 'block';
+                    maintenanceAlert.innerHTML = '⚠️ The Website is currently under maintenance. Please try again later. ⚠️';
+                }
+
+                // Disable Proceed to Pay button
+                if (rechargeBtn) {
+                    rechargeBtn.disabled = true;
+                    rechargeBtn.style.opacity = '0.6';
+                    rechargeBtn.style.cursor = 'not-allowed';
+                }
+
+                // Disable diamond pack selection
+                diamondOptions.forEach(el => {
+                    el.style.pointerEvents = 'none';
+                    el.style.opacity = '0.5';
+                });
+
+                // Disable manual quantity controls
+                if (manualQty) manualQty.disabled = true;
+                if (decrementBtn) decrementBtn.disabled = true;
+                if (incrementBtn) incrementBtn.disabled = true;
+
+                // Show toast notification
+                showToast("🔧 Website is under maintenance. Payments are temporarily disabled.");
+
+            } else {
+                // Hide maintenance alert
+                if (maintenanceAlert) {
+                    maintenanceAlert.style.display = 'none';
+                }
+
+                // Enable Proceed to Pay button (if minimum diamonds condition is met)
+                if (rechargeBtn && currentQty >= MIN_DIAMONDS) {
+                    rechargeBtn.disabled = false;
+                    rechargeBtn.style.opacity = '1';
+                    rechargeBtn.style.cursor = 'pointer';
+                }
+
+                // Enable diamond pack selection
+                diamondOptions.forEach(el => {
+                    el.style.pointerEvents = 'auto';
+                    el.style.opacity = '1';
+                });
+
+                // Enable manual quantity controls
+                if (manualQty) manualQty.disabled = false;
+                if (decrementBtn) decrementBtn.disabled = false;
+                if (incrementBtn) incrementBtn.disabled = false;
+            }
+        });
+
+
 
         function updateTickerDisplay() {
             const tickerElement = document.getElementById('tickerText');
@@ -1578,38 +1643,12 @@
             }
         }, 4000);
 
+
         buildGrid();
         updateUI();
 
-        // ========== LISTEN TO MAINTENANCE MODE ==========
-        db.ref('maintenanceMode').on('value', (snapshot) => {
-            const isMaintenance = snapshot.val() === true;
-            const maintenanceAlert = document.getElementById('maintenanceAlert');
-            const rechargeBtn = document.getElementById('rechargeBtn');
-            const diamondOptions = document.querySelectorAll('.diamond-option');
+        // ========== MAINTENANCE MODE LISTENER ==========
 
-            if (isMaintenance) {
-                if (maintenanceAlert) maintenanceAlert.style.display = 'block';
-                if (rechargeBtn) {
-                    rechargeBtn.disabled = true;
-                    rechargeBtn.style.opacity = '0.6';
-                }
-                diamondOptions.forEach(el => {
-                    el.style.pointerEvents = 'none';
-                    el.style.opacity = '0.5';
-                });
-            } else {
-                if (maintenanceAlert) maintenanceAlert.style.display = 'none';
-                if (rechargeBtn) {
-                    rechargeBtn.disabled = false;
-                    rechargeBtn.style.opacity = '1';
-                }
-                diamondOptions.forEach(el => {
-                    el.style.pointerEvents = 'auto';
-                    el.style.opacity = '1';
-                });
-            }
-        });
     </script>
 </body>
 
