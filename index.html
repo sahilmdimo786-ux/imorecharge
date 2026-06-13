@@ -894,8 +894,7 @@
             });
         }
         // ========== MAINTENANCE MODE LISTENER ==========
-        db.ref('maintenanceMode').on('value', (snapshot) => {
-            const isMaintenance = snapshot.val() === true;
+        function applyMaintenanceMode(isMaintenance) {
             const maintenanceAlert = document.getElementById('maintenanceAlert');
             const rechargeBtn = document.getElementById('rechargeBtn');
             const diamondOptions = document.querySelectorAll('.diamond-option');
@@ -928,9 +927,6 @@
                 if (decrementBtn) decrementBtn.disabled = true;
                 if (incrementBtn) incrementBtn.disabled = true;
 
-                // Show toast notification
-                showToast("🔧 Website is under maintenance. Payments are temporarily disabled.");
-
             } else {
                 // Hide maintenance alert
                 if (maintenanceAlert) {
@@ -938,10 +934,14 @@
                 }
 
                 // Enable Proceed to Pay button (if minimum diamonds condition is met)
-                if (rechargeBtn && currentQty >= MIN_DIAMONDS) {
-                    rechargeBtn.disabled = false;
-                    rechargeBtn.style.opacity = '1';
-                    rechargeBtn.style.cursor = 'pointer';
+                if (rechargeBtn) {
+                    const minDiamonds = 10;
+                    const currentQty = parseInt(document.getElementById('manualQty')?.value || 100);
+                    if (currentQty >= minDiamonds) {
+                        rechargeBtn.disabled = false;
+                        rechargeBtn.style.opacity = '1';
+                        rechargeBtn.style.cursor = 'pointer';
+                    }
                 }
 
                 // Enable diamond pack selection
@@ -955,6 +955,20 @@
                 if (decrementBtn) decrementBtn.disabled = false;
                 if (incrementBtn) incrementBtn.disabled = false;
             }
+        }
+
+        // Listen to maintenance mode changes
+        db.ref('maintenanceMode').on('value', (snapshot) => {
+            const isMaintenance = snapshot.val() === true;
+            console.log('[MAINTENANCE] Mode:', isMaintenance ? 'ON' : 'OFF');
+            applyMaintenanceMode(isMaintenance);
+        });
+
+        // Also check immediately on page load (as backup)
+        db.ref('maintenanceMode').get().then((snapshot) => {
+            const isMaintenance = snapshot.val() === true;
+            console.log('[MAINTENANCE] Initial load - Mode:', isMaintenance ? 'ON' : 'OFF');
+            applyMaintenanceMode(isMaintenance);
         });
 
 
