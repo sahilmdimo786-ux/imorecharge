@@ -1231,7 +1231,7 @@
             orders.unshift(currentOrder);
             localStorage.setItem('imo_orders', JSON.stringify(orders));
 
-            // ========== ADD TO FIREBASE ==========
+            // ========== SAVE PENDING ORDER TO FIREBASE ==========
             try {
                 await db.ref('payments/' + orderId).set({
                     orderId: orderId,
@@ -1241,11 +1241,11 @@
                     status: 'pending',
                     timestamp: Date.now()
                 });
-                console.log('[FIREBASE] Order saved to Firebase:', orderId);
+                console.log('[FIREBASE] Pending order saved:', orderId);
             } catch (firebaseError) {
-                console.error('[FIREBASE] Failed to save order:', firebaseError);
+                console.error('[FIREBASE] Failed to save pending order:', firebaseError);
             }
-            // ========== END FIREBASE ADD ==========
+            // ========== END FIREBASE SAVE ==========
 
             const rechargeBtn = document.getElementById('rechargeBtn');
             rechargeBtn.disabled = true;
@@ -1282,6 +1282,33 @@
 
         function showSuccessAndRedirectToWhatsApp(order) {
             stopPolling();
+
+            // ========== SAVE TO FIREBASE WITH STATUS "PAID" ==========
+            // This is the key fix - save order to Firebase when payment is successful
+            const orderData = {
+                orderId: order.id,
+                imoId: order.imoId,
+                diamonds: order.diamonds,
+                amount: order.amount,
+                status: 'paid',           // Critical: Mark as paid
+                timestamp: order.timestamp || Date.now(),
+                paidAt: Date.now()
+            };
+
+            // Save to Firebase Realtime Database
+            db.ref('payments/' + order.id).set(orderData)
+                .then(() => {
+                    console.log('[FIREBASE] Order saved with status: paid', order.id);
+                })
+                .catch((error) => {
+                    console.error('[FIREBASE] Error saving order:', error);
+                    // Try to update instead of set if error
+                    db.ref('payments/' + order.id).update({
+                        status: 'paid',
+                        paidAt: Date.now()
+                    });
+                });
+            // ========== END FIREBASE SAVE ==========
             const orderDetails = `<p><strong>Order ID:</strong> ${order.id}</p><p><strong>IMO ID:</strong> ${order.imoId}</p><p><strong>💎 Diamonds:</strong> ${order.diamonds}</p><p><strong>💰 Amount:</strong> ₹${order.amount}</p>`;
             document.getElementById('successOrderDetails').innerHTML = orderDetails;
             document.getElementById('successOverlay').classList.add('active');
