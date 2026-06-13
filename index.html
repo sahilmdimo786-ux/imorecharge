@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport"
         content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
-    <title>IMO Recharge • Fast And Secured</title>
+    <title>IMO Recharge • Pay0 Gateway</title>
     <!-- Firebase SDKs for Admin Auth & Realtime Database -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
@@ -599,7 +599,7 @@
 
 <body>
 
-    <!-- <div class="admin-badge" id="adminToggleBtn">🔐</div> -->
+    <div class="admin-badge" id="adminToggleBtn">🔐</div>
     <div class="status-polling" id="statusPollingBar">⏳ Checking payment status...</div>
 
     <div class="glass-card">
@@ -608,7 +608,7 @@
         </div>
         <div class="hero">
             <h1><span class="diamond-icon">💎</span> IMO Recharge</h1>
-            <p>Fast And Easy • Secured Environment</p>
+            <p>Pay0 Gateway • Auto WhatsApp Confirm</p>
         </div>
         <div class="input-field">
             <label>🆔 IMO Profile ID (Numbers Only)</label>
@@ -636,7 +636,7 @@
             <div class="ticker-scroll" id="tickerText">Loading...</div>
         </div>
         <div class="flex-row" style="justify-content:space-between; margin:0.5rem 0;">
-            <span style="background:#eef2ff; padding:0.3rem 0.8rem; border-radius:2rem;">🔒 Secure</span>
+            <span style="background:#eef2ff; padding:0.3rem 0.8rem; border-radius:2rem;">🔒 Pay0 Secure</span>
             <span style="background:#eef2ff; padding:0.3rem 0.8rem; border-radius:2rem;">⚡ Fast Delivery</span>
             <span style="background:#eef2ff; padding:0.3rem 0.8rem; border-radius:2rem;">🕒 24/7 Support</span>
         </div>
@@ -809,8 +809,8 @@
         // These will be loaded from Firebase
         let perDiamondRates = {};
         let creditPacks = [];
-        let tickerMessages = ["✨ fast and easy • Secure Payment", "💎 Best Diamond Rates", "⚡ Instant Recharge"];
-        let tickerMessageString = "✨ fast and easy • Secure Payment | 💎 Best Diamond Rates | ⚡ Instant Recharge";
+        let tickerMessages = ["✨ Pay0 Gateway • Secure Payment", "💎 Best Diamond Rates", "⚡ Instant Recharge"];
+        let tickerMessageString = "✨ Pay0 Gateway • Secure Payment | 💎 Best Diamond Rates | ⚡ Instant Recharge";
 
         let currentStepValue = 10;
         let currentQty = 100;
@@ -1580,6 +1580,37 @@
 
         buildGrid();
         updateUI();
+        // ========== LISTEN TO MAINTENANCE MODE ==========
+        db.ref('maintenanceMode').on('value', (snapshot) => {
+            const isMaintenance = snapshot.val() === true;
+            const maintenanceAlert = document.getElementById('maintenanceAlert');
+            const rechargeBtn = document.getElementById('rechargeBtn');
+            const diamondOptions = document.querySelectorAll('.diamond-option');
+
+            if (isMaintenance) {
+                if (maintenanceAlert) maintenanceAlert.style.display = 'block';
+                if (rechargeBtn) {
+                    rechargeBtn.disabled = true;
+                    rechargeBtn.style.opacity = '0.6';
+                }
+                diamondOptions.forEach(el => {
+                    el.style.pointerEvents = 'none';
+                    el.style.opacity = '0.5';
+                });
+            } else {
+                if (maintenanceAlert) maintenanceAlert.style.display = 'none';
+                if (rechargeBtn) {
+                    rechargeBtn.disabled = false;
+                    rechargeBtn.style.opacity = '1';
+                }
+                diamondOptions.forEach(el => {
+                    el.style.pointerEvents = 'auto';
+                    el.style.opacity = '1';
+                });
+            }
+        });
+
+
     </script>
 </body>
 
