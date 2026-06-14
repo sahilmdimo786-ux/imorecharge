@@ -792,6 +792,118 @@
         const auth = firebase.auth();
         const db = firebase.database();
 
+        // ========== DETECT IN-APP BROWSER & OFFER CHROME REDIRECT ==========
+        function isInAppBrowser() {
+            const ua = navigator.userAgent || navigator.vendor || window.opera;
+
+            // Detect imo, WhatsApp, Telegram, Facebook, Instagram in-app browsers
+            const isImo = ua.indexOf('IMO') > -1;
+            const isWhatsApp = ua.indexOf('WhatsApp') > -1;
+            const isFB = ua.indexOf('FBAV') > -1;
+            const isInstagram = ua.indexOf('Instagram') > -1;
+            const isTelegram = ua.indexOf('Telegram') > -1;
+            const isLine = ua.indexOf('Line') > -1;
+
+            return isImo || isWhatsApp || isFB || isInstagram || isTelegram || isLine;
+        }
+
+        // Function to open in Chrome (Android only)
+        function openInChrome() {
+            const currentUrl = window.location.href;
+            // Chrome intent URL - this is the only way to suggest opening in Chrome
+            const chromeIntent = `intent://${currentUrl.replace('https://', '').replace('http://', '')}#Intent;scheme=https;package=com.android.chrome;end`;
+            window.location.href = chromeIntent;
+        }
+
+        // If user is in in-app browser, show a full-screen message
+        if (isInAppBrowser()) {
+            // Store the original proceedToPayment function
+            const originalProceedToPayment = window.proceedToPayment;
+
+            // Override to show warning instead
+            window.proceedToPayment = function () {
+                showBrowserWarning();
+                return false;
+            };
+
+            function showBrowserWarning() {
+                // Remove any existing warning
+                const existingWarning = document.getElementById('browserWarning');
+                if (existingWarning) existingWarning.remove();
+
+                const warningDiv = document.createElement('div');
+                warningDiv.id = 'browserWarning';
+                warningDiv.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.95);
+            z-index: 99999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            text-align: center;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+        `;
+
+                warningDiv.innerHTML = `
+            <div style="background: white; border-radius: 24px; padding: 30px; max-width: 90%; width: 320px;">
+                <div style="font-size: 48px; margin-bottom: 10px;">⚠️</div>
+                <h2 style="color: #333; margin-bottom: 10px;">Browser Not Supported</h2>
+                <p style="color: #666; margin-bottom: 20px; line-height: 1.5;">
+                    Please open this link in <strong>Chrome Browser</strong> to make payment.
+                </p>
+                <button onclick="openInChrome()" style="
+                    background: #4285F4;
+                    color: white;
+                    border: none;
+                    padding: 14px 20px;
+                    border-radius: 30px;
+                    font-size: 16px;
+                    font-weight: bold;
+                    width: 100%;
+                    margin-bottom: 12px;
+                    cursor: pointer;
+                ">
+                    🌐 Open in Chrome
+                </button>
+                <button onclick="document.getElementById('browserWarning').style.display='none'" style="
+                    background: transparent;
+                    color: #666;
+                    border: 1px solid #ddd;
+                    padding: 12px 20px;
+                    border-radius: 30px;
+                    font-size: 14px;
+                    width: 100%;
+                    cursor: pointer;
+                ">
+                    Continue Anyway (Not Recommended)
+                </button>
+                <p style="color: #999; font-size: 11px; margin-top: 15px;">
+                    Tip: Tap ⋮ three dots → Open in Chrome
+                </p>
+            </div>
+        `;
+
+                document.body.appendChild(warningDiv);
+            }
+
+            // Also disable the Proceed to Pay button
+            const checkInterval = setInterval(() => {
+                const rechargeBtn = document.getElementById('rechargeBtn');
+                if (rechargeBtn) {
+                    rechargeBtn.disabled = true;
+                    rechargeBtn.style.opacity = '0.5';
+                    rechargeBtn.title = 'Please open in Chrome browser to make payment';
+                    clearInterval(checkInterval);
+                }
+            }, 100);
+        }
+
         // ========== PAY0 CONFIGURATION ==========
         const PAY0_API_URL = '/api/create-order';
         const PAY0_CHECK_URL = '/api/check-order-status';
